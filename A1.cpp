@@ -1032,8 +1032,9 @@ void A1::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 
 
 void A1::update(float dt) {
-	time = std::fmod( time + dt, 60.0f);
-
+	if(!rtg.paused){
+		time = time + dt;
+	}
 	object_instances.clear();
 
 	// { //camera orbiting the origin:
@@ -1050,6 +1051,38 @@ void A1::update(float dt) {
 	// 	);
 	// }
 
+	
+	//Driver motion
+	float t = time / 60.f;
+	for(RTG::Driver driver : rtg.drivers){
+		std::string node_name = driver.node;
+		RTG::Node this_node = rtg.nodes[node_name];
+		vec4 value = driver.value_at_time(t);
+
+		// std::cout << "Driver " << driver.name << " time : " << t << std::endl;
+		
+		if(driver.channel.compare("translation") == 0){
+			this_node.translation = value;
+		}else if(driver.channel.compare("scale") == 0){
+			this_node.scale = value;
+		}else if(driver.channel.compare("rotation") == 0){
+			this_node.rotation = value;
+			// float v0 = this_node.rotation[0];
+			// float v1 = this_node.rotation[1];
+			// float v2 = this_node.rotation[2];
+			// float v3 = this_node.rotation[3];
+			// // std::cout << "rotated {" << v0 << " , " << v1 << " , " v2 << " , " v3 << "}" << std::endl;
+			// std::cout << "rotated " << v0;
+			// std::cout << " ' " << v1 ;
+			// std::cout << " ' " << v2 ;
+			// std::cout << " ' " << v3  << std::endl;
+		}else{
+			std::cout << "No channel matching -> " << driver.channel << std::endl;
+		}
+		//Update transforms
+		// std::cout << "Updating " << driver.channel << " of " <<  driver.node << std::endl;
+		this_node.make_parent_from_local();
+	}
 	
 	 
 	{ //static sun and sky:
@@ -1288,12 +1321,21 @@ void A1::update(float dt) {
 void A1::on_input(InputEvent const &input) {
 	if(input.type == InputEvent::KeyDown) {
 		if(input.key.key == 85){ //U
-			std::cout << "Entering user Camera mode" << std::endl;
+			std::cout << "Entering USER Camera mode" << std::endl;
 			rtg.camera_mode = "user";
 		}
 		if(input.key.key == 83){ //S
-			std::cout << "Entering user Scene mode" << std::endl;
+			std::cout << "Entering SCENE Camera mode" << std::endl;
 			rtg.camera_mode = "scene";
+		}
+		if(input.key.key == 80){ //P
+			if(rtg.paused){
+				std::cout << "unpause at" << time << std::endl;
+				rtg.paused = false;
+			}else{
+				std::cout << "pause at" << time	 << std::endl;
+				rtg.paused = true;
+			}
 		}
 	}
 	if(input.type == InputEvent::MouseButtonDown){

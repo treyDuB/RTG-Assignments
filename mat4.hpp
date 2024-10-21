@@ -42,6 +42,35 @@ inline mat4 operator*(mat4 const &A, mat4 const &B) {
 	return ret;
 }
 
+inline vec4 operator*(vec4 const &v, float const &c) {
+    vec4 ret;
+    //compute ret = v * c :
+    for (uint32_t r = 0; r < 4; r++) {
+        ret[r] = v[r] * c;
+    }
+    return ret;
+}
+inline vec4 operator*(float const &c, vec4 const &v) {
+    return v * c;
+}
+
+inline vec4 operator*(vec4 const &v0, vec4 const &v1){
+    vec4 v;
+    for(int i = 0; i < 4; i++){
+        v[i] = v0[i] * v1[i];
+    }
+    return v;
+}
+
+inline vec4 operator+(vec4 const &v0, vec4 const &v1){
+    vec4 v;
+    for(int i = 0; i < 4; i++){
+        v[i] = v0[i] + v1[i];
+    }
+    return v;
+}
+
+
 //perspective projection matrix.
 // - vfov is fov *in radians*
 // - near maps to 0, far maps to 1
@@ -64,22 +93,44 @@ inline mat4 perspective(float vfov, float aspect, float near, float far){
 }
 
 inline mat4 quaternianToMatrix(vec4 quaternian){
+    // float x = quaternian[0];
+    // float y = quaternian[1];
+    // float z = quaternian[2];
+    // float w = quaternian[3];
+
+    // float m_00 = 1.0f - 2.0f * (y * y + z * z);
+    // float m_01 = 2.0f * (x * y - w * z);
+    // float m_02 = 2.0f * (x * z + w * y);
+
+    // float m_10 = 2.0f * (x * y + w * z);
+    // float m_11 = 1.0f - 2.0f * (x * x + z * z);
+    // float m_12 = 2.0f * (y * z - w * x);
+
+    // float m_20 = 2.0f * (x * z - w * y);
+    // float m_21 = 2.0f * (y * z + w * x);
+    // float m_22 = 1.0f - 2.0f * (x * x + y * y);
+
+    // return mat4{m_00, m_10, m_20, 0.f,
+    //             m_01, m_11, m_21, 0.f,
+    //             m_02, m_12, m_22, 0.f,
+    //             0.f,  0.f,  0.f,  1.f};
+
     float x = quaternian[0];
     float y = quaternian[1];
     float z = quaternian[2];
     float w = quaternian[3];
 
-    float m_00 = 1.0f - 2.0f * (y * y + z * z);
+    float m_00 = 2.0f * (w * w + x * x) - 1.0f;
     float m_01 = 2.0f * (x * y - w * z);
     float m_02 = 2.0f * (x * z + w * y);
 
     float m_10 = 2.0f * (x * y + w * z);
-    float m_11 = 1.0f - 2.0f * (x * x + z * z);
+    float m_11 = 2.0f * (w * w + y * y) - 1.0f;
     float m_12 = 2.0f * (y * z - w * x);
 
     float m_20 = 2.0f * (x * z - w * y);
     float m_21 = 2.0f * (y * z + w * x);
-    float m_22 = 1.0f - 2.0f * (x * x + y * y);
+    float m_22 = 2.0f * (w * w + z * z) - 1.0f;
 
     return mat4{m_00, m_10, m_20, 0.f,
                 m_01, m_11, m_21, 0.f,
@@ -141,6 +192,34 @@ inline mat4 look_at(
         right_z, up_z, -in_z, 0.f,
         -right_dot_eye, -up_dot_eye, in_dot_eye, 1.f,
     };
+}
+
+inline vec4 inverse(vec4 v){
+    vec4 inv;
+    for(int i = 0; i < 4; i++){
+        if(v[i] == 0.f){
+            inv[i] = 0.f;
+        } else {
+            inv[i] = 1.f / v[i];
+        }
+    }
+    return inv;
+}
+
+inline float dot(vec4 v0, vec4 v1){
+    float ret = 0.f;
+    for(int i = 0; i < 4; i++){
+        ret += v0[i] * v1[i];
+    }
+    return ret;
+}
+
+inline vec4 pow(vec4 v, float u){
+    vec4 ret;
+    for(int i = 0; i < 4; i++){
+        ret[i] = std::pow(v[i], u);
+    }
+    return ret;
 }
 
 

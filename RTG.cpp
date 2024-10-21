@@ -683,16 +683,16 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						driver.channel = object_json.at("channel").as_string().value();
 						auto times = object_json.at("times").as_array().value();
 						for(auto time : times){
-							driver.times.push_back(uint32_t(time.as_number().value()));
+							driver.times.push_back(float(time.as_number().value()));
 						}
 						auto values = object_json.at("values").as_array().value();
 						for(auto value : values){
-							driver.values.push_back(uint32_t(value.as_number().value()));
+							driver.values.push_back(float(value.as_number().value()));
 						}
 						if(object_json.contains("interpolation")){
 							driver.interpolation = object_json.at("interpolation").as_string().value();
 						}
-						drivers[name] = driver;
+						drivers.emplace_back(driver);
 					} else if(type.compare("MATERIAL") == 0){
 						std::cout << "Loading material" << std::endl;
 						Material material;
@@ -813,6 +813,86 @@ void RTG::Node::make_parent_from_local(){
 					0.f, 0.f, scale[2], 0.f,
 					0.f, 0.f, 0.f, 1.f};
 	parent_from_local = trans_mat * rot_mat * scale_mat;
+}
+
+vec4 RTG::Driver::value_at_time(float t){
+	vec4 value = vec4 {0.f, 0.f, 0.f, 1.f};
+	int i = 0;
+	int size = (int)times.size();
+	while(i < size && times[i] < t){
+		i++;
+	}
+	//Check Channel size: 3 for translatin, scale  or 4 for rotation.
+	int j = i * 3;
+	int step = 3;
+	if(channel.compare("rotation") == 0){
+		j = i * 4;
+		step = 4;
+	}
+	// Assert j * step < valies.size(); or times.size() * step == values.size(); 
+	if(i == size){
+		for(int k = 0; k < step; k++){
+			value[k] = values[(j-step) + k];
+		}
+		return value;
+	}
+	if(i == 0){
+		for(int k = 0; k < step; k++){
+			value[k] = values[k];
+		}
+		return value;
+	}
+	//values[i] >= t && values[i-1] < t
+	if(interpolation.compare("STEP") == 0){
+		for(int k = 0; k < step; k++){
+			value[k] = values[(j-step) + k];
+		}
+		return value;
+	} else if(interpolation.compare("SLERP") == 0){
+		//Inspired by: https://splines.readthedocs.io/en/latest/rotation/slerp.html
+		float t0 = times[i-1];
+		float t1 = times[i];
+		float u = 0.f; 
+		if(t1 - t0 > 0.f){
+			u = (t - t0)/(t1 - t0);
+		}
+		u = std::min(std::max(u, 0.f), 1.f);
+		u = 1.f;
+
+		vec4 v0 = {0.f, 0.f, 0.f, 1.f};
+		vec4 v1 = {0.f, 0.f, 0.f, 1.f};
+		for(int k = 0; k < step; k++){
+			v0[k] = values[(j-step) + k];
+			v1[k] = values[j + k];
+		}
+
+		vec4 left = v1 * inverse(v0);
+		left = pow(left, u);
+
+		return left * v0;
+	} else if(interpolation.compare("LINEAR") == 0){
+		float t0 = times[i-1];
+		float t1 = times[i];
+		float u; 
+		if(t1 - t0 > 0.f){
+			u = (t - t0)/(t1 - t0);
+		}
+		u = std::min(std::max(u, 0.f), 1.f);
+
+		vec4 v0 = {0.f, 0.f, 0.f, 1.f};
+		vec4 v1 = {0.f, 0.f, 0.f, 1.f};
+		for(int k = 0; k < step; k++){
+			v0[k] = values[(j-step) + k];
+			v1[k] = values[j + k];
+		}
+
+		value = ((1.f - u) * v0) + (u * v1);
+		// value = {t, (float)j, (float)i, 1.f};
+		return value;
+	}
+	
+	std::cout << "No matching interpolation!!! " << interpolation << std::endl;
+	return value;
 }
 RTG::~RTG() {
 	//don't destroy until device is idle:

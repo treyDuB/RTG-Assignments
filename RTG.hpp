@@ -278,9 +278,11 @@ struct RTG {
 		std::string name;
 		std::string node;
 		std::string channel;
-		std::vector<uint32_t> times;
-		std::vector<uint32_t> values;
+		std::vector<float> times;
+		std::vector<float> values;
 		std::string interpolation = "LINEAR";
+
+		vec4 value_at_time(float t);
 	};
 
 	struct Material {
@@ -344,7 +346,7 @@ struct RTG {
 	std::map<std::string, Node> nodes;
 	std::map<std::string, Mesh> meshes;
 	std::map<std::string, Camera> cameras;
-	std::map<std::string, Driver> drivers;
+	std::vector<Driver> drivers; //Stored in order
 	std::map<std::string, Material> materials;
 	std::map<std::string, Environment> environments;
 	std::map<std::string, Light> lights;
@@ -358,6 +360,8 @@ struct RTG {
 
 	//------------------------------
 	std::string cull_mode = "none";
+
+	bool paused = false;
 
 
 	//----------------------------------
