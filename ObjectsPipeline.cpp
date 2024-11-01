@@ -1,4 +1,4 @@
-#include "A1.hpp"
+#include "A2.hpp"
 
 #include "Helpers.hpp"
 #include "VK.hpp"
@@ -11,7 +11,7 @@ static uint32_t frag_code[] =
 #include "spv/objects.frag.inl"
 ;
 
-void A1::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass, 
+void A2::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass, 
     uint32_t subpass) {
     VkShaderModule vert_module = rtg.helpers.create_shader_module(vert_code);
     VkShaderModule frag_module = rtg.helpers.create_shader_module(frag_code);
@@ -74,11 +74,72 @@ void A1::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass,
 		VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set2_TEXTURE) );
 	}
 
+    { //the set3_ENVIRONMENT layout has a single descriptor for a sampler2D used in the fragment shader:
+		std::array< VkDescriptorSetLayoutBinding, 1 > bindings{
+			VkDescriptorSetLayoutBinding{
+				.binding = 0,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			},
+		};
+		
+		VkDescriptorSetLayoutCreateInfo create_info{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.bindingCount = uint32_t(bindings.size()),
+			.pBindings = bindings.data(),
+		};
+
+		VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set3_ENVIRONMENT) );
+	}
+
+    { //the set5_Displacement layout has a single descriptor for a sampler2D used in the vertex shader:
+        std::array< VkDescriptorSetLayoutBinding, 1> bindings{
+            VkDescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+            },
+        };
+
+        VkDescriptorSetLayoutCreateInfo create_info{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = uint32_t(bindings.size()),
+            .pBindings = bindings.data(),
+        };
+
+        VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set5_Displacement));
+    }
+
+
+    { //the set4_Normal layout has a single descriptor for a sampler2D used in the vertex shader:
+        std::array< VkDescriptorSetLayoutBinding, 1> bindings{
+            VkDescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+            },
+        };
+
+        VkDescriptorSetLayoutCreateInfo create_info{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = uint32_t(bindings.size()),
+            .pBindings = bindings.data(),
+        };
+
+        VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set4_Normal));
+    }
+
     { //create pipeline layout:
-        std::array< VkDescriptorSetLayout, 3> layouts{
+        std::array< VkDescriptorSetLayout, 6> layouts{
             set0_World, //we'll likely use VK_NULL_HANDLE here
             set1_Transforms,
             set2_TEXTURE,
+            set3_ENVIRONMENT,
+            set4_Normal,
+            set5_Displacement,
         };
        
 
@@ -209,7 +270,22 @@ void A1::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass,
     vkDestroyShaderModule(rtg.device, vert_module, nullptr);
 }
 
-void A1::ObjectsPipeline::destroy(RTG &rtg) {
+void A2::ObjectsPipeline::destroy(RTG &rtg) {
+    if (set3_ENVIRONMENT != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(rtg.device, set3_ENVIRONMENT, nullptr);
+		set3_ENVIRONMENT = VK_NULL_HANDLE;
+	}
+
+    if (set5_Displacement != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(rtg.device, set5_Displacement, nullptr);
+		set5_Displacement = VK_NULL_HANDLE;
+	}
+
+    if (set4_Normal != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(rtg.device, set4_Normal, nullptr);
+		set4_Normal = VK_NULL_HANDLE;
+	}
+
     if (set2_TEXTURE != VK_NULL_HANDLE) {
 		vkDestroyDescriptorSetLayout(rtg.device, set2_TEXTURE, nullptr);
 		set2_TEXTURE = VK_NULL_HANDLE;

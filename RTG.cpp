@@ -3,6 +3,9 @@
 #include "VK.hpp"
 #include "sejp.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 
 #include <vulkan/vulkan_core.h>
@@ -471,9 +474,9 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 							}
 						}
 						if(object_json.contains("environment")){
-							auto environment = object_json.at("environment").as_string();
-							if(environment.has_value()){
-								node.environment = environment.value();
+							auto environment_ = object_json.at("environment").as_string();
+							if(environment_.has_value()){
+								node.environment = environment_.value();
 							}
 						}
 						if(object_json.contains("light")){
@@ -698,10 +701,14 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						Material material;
 						material.name = name;
 						if(object_json.contains("normalMap")){
-							material.normalMap_src = object_json.at("normalMap").as_string().value();
+							material.normalMap_src = scene_folder + object_json.at("normalMap").as_object().value().at("src").as_string().value();
+							material.normalMap.format = object_json.at("normalMap").as_object().value().at("format").as_string().value();
+							material.normalMap.load_texture(material.normalMap_src);
 						}
 						if(object_json.contains("displacementMap")){
-							material.displacementMap_src = object_json.at("displacementMap").as_string().value();
+							material.displacementMap_src = scene_folder + object_json.at("displacementMap").as_object().value().at("src").as_string().value();
+							material.displacementMap.format = object_json.at("displacementMap").as_object().value().at("format").as_string().value();
+							material.displacementMap.load_texture(material.displacementMap_src);
 						}
 						//Find the type of material
 						
@@ -714,9 +721,37 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 									float(albedo_array[1].as_number().value()), float(albedo_array[2].as_number().value()), 0.f};
 							} else if(auto albedo_src = pbr_obj.at("albedo").as_object()){
 								material.albedo_src = scene_folder + albedo_src.value().at("src").as_string().value();
+								material.albedoMap.format = albedo_src.value().at("format").as_string().value();
+								material.albedoMap.load_texture(material.albedo_src);
 							}
+
+							if(auto roughness = pbr_obj.at("roughness").as_number()){
+								material.roughness = (float)roughness.value();
+							} else if(auto roughness_src = pbr_obj.at("roughness").as_object()){
+								material.roughness_src = scene_folder + roughness_src.value().at("src").as_string().value();
+								material.roughnessMap.format = roughness_src.value().at("format").as_string().value();
+								material.roughnessMap.load_texture(material.roughness_src);
+							}
+							if(auto metalness = pbr_obj.at("metalness").as_number()){
+								material.metalness = (float)metalness.value();
+							} else if(auto metalness_src = pbr_obj.at("metalness").as_object()){
+								material.metalness_src = scene_folder + metalness_src.value().at("src").as_string().value();
+								material.metalnessMap.format = metalness_src.value().at("format").as_string().value();
+								material.metalnessMap.load_texture(material.metalness_src);
+							}
+
 						} else if (object_json.contains("lambertian")){
 							material.material_type = "lambertian";
+							auto lambertian = object_json.at("lambertian").as_object().value();
+							if(auto albedo = lambertian.at("albedo").as_array()){
+								auto albedo_array = albedo.value();
+								material.albedo = {float(albedo_array[0].as_number().value()), 
+									float(albedo_array[1].as_number().value()), float(albedo_array[2].as_number().value()), 0.f};
+							} else if(auto albedo_src = lambertian.at("albedo").as_object()){
+								material.albedo_src = scene_folder + albedo_src.value().at("src").as_string().value();
+								material.albedoMap.format = albedo_src.value().at("format").as_string().value();
+								material.albedoMap.load_texture(material.albedo_src);
+							}
 						} else if (object_json.contains("mirror")){
 							material.material_type = "mirror";
 						} else if (object_json.contains("environment")){
@@ -725,13 +760,13 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						materials[name] = material;
 					} else if(type.compare("ENVIRONMENT") == 0){
 						std::cout << "Loading environment" << std::endl;
-						Environment environment;
 						environment.name = name;
 						auto radiance = object_json.at("radiance").as_object().value();
-						environment.src = radiance.at("src").as_string().value();
-						environment.type = radiance.at("type").as_string().value();
-						environment.format = radiance.at("format").as_string().value();
-						environments[name] = environment;
+						environment.src = scene_folder + radiance.at("src").as_string().value();
+						environment.texture.type = radiance.at("type").as_string().value();
+						environment.texture.format = radiance.at("format").as_string().value();
+						environment.texture.load_texture(environment.src);
+
 					} else if(type.compare("LIGHT") == 0){
 						std::cout << "Loading light" << std::endl;
 						Light light;
@@ -753,8 +788,8 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						} else if(object_json.contains("sphere")){
 							auto sphere_obj = object_json.at("sphere").as_object().value();
 							light.light_type = "sphere";
-							light.angle = float(sphere_obj.at("angle").as_number().value());
-							light.strength = float(sphere_obj.at("strength").as_number().value());
+							light.radius = float(sphere_obj.at("radius").as_number().value());
+							light.power = float(sphere_obj.at("power").as_number().value());
 							if(sphere_obj.contains("limit")){
 								light.limit = float(sphere_obj.at("limit").as_number().value());
 							}
@@ -806,7 +841,7 @@ void RTG::Node::make_parent_from_local(){
 	mat4 trans_mat{ 1.f, 0.f, 0.f, 0.f, 
 					0.f, 1.f, 0.f, 0.f,
 					0.f, 0.f, 1.f, 0.f,
-					translation[0], translation[0], translation[0], 1.f};
+					translation[0], translation[1], translation[2], 1.f};
 	mat4 rot_mat = quaternianToMatrix(rotation);
 	mat4 scale_mat{ scale[0], 0.f, 0.f, 0.f,  
 					0.f, scale[1], 0.f, 0.f, 
@@ -894,6 +929,36 @@ vec4 RTG::Driver::value_at_time(float t){
 	std::cout << "No matching interpolation!!! " << interpolation << std::endl;
 	return value;
 }
+
+// void RTG::featureMap::load_features(std::string src, int c){	
+// 	int _x,_y,_n;
+// 	float *_data = stbi_loadf(src.c_str() , &_x, &_y, &_n, c);
+// 	data = _data;
+// 	x = (uint32_t)_x;
+// 	y = (uint32_t)_y;
+// 	n = (uint32_t)_n;
+// }
+
+void RTG::textureMap::load_texture(std::string src){
+	int _x, _y, _n;
+	stbi_uc *_data = stbi_load(src.c_str() , &_x, &_y, &_n, (int)n);
+	x = (uint32_t)_x;
+	y = (uint32_t)_y;
+	n = (uint32_t)_n;
+	//Should we case based on format
+	
+	data.reserve(x*y);
+	for(uint32_t i = 0; i < x; i++){
+		for(uint32_t j = 0; j < y; j++){
+			uint8_t r = uint8_t(_data[(i + x*j) * n]);
+			uint8_t g =	uint8_t(_data[(i + x*j) * n + 1]);
+			uint8_t b = uint8_t(_data[(i + x*j) * n + 2]);
+			uint8_t a = uint8_t(_data[(i + x*j) * n + 3]);
+			data.emplace_back( uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24) );
+		}
+	}
+}
+
 RTG::~RTG() {
 	//don't destroy until device is idle:
 	if (device != VK_NULL_HANDLE) {

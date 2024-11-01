@@ -93,49 +93,49 @@ inline mat4 perspective(float vfov, float aspect, float near, float far){
 }
 
 inline mat4 quaternianToMatrix(vec4 quaternian){
-    // float x = quaternian[0];
-    // float y = quaternian[1];
-    // float z = quaternian[2];
-    // float w = quaternian[3];
-
-    // float m_00 = 1.0f - 2.0f * (y * y + z * z);
-    // float m_01 = 2.0f * (x * y - w * z);
-    // float m_02 = 2.0f * (x * z + w * y);
-
-    // float m_10 = 2.0f * (x * y + w * z);
-    // float m_11 = 1.0f - 2.0f * (x * x + z * z);
-    // float m_12 = 2.0f * (y * z - w * x);
-
-    // float m_20 = 2.0f * (x * z - w * y);
-    // float m_21 = 2.0f * (y * z + w * x);
-    // float m_22 = 1.0f - 2.0f * (x * x + y * y);
-
-    // return mat4{m_00, m_10, m_20, 0.f,
-    //             m_01, m_11, m_21, 0.f,
-    //             m_02, m_12, m_22, 0.f,
-    //             0.f,  0.f,  0.f,  1.f};
-
     float x = quaternian[0];
     float y = quaternian[1];
     float z = quaternian[2];
     float w = quaternian[3];
 
-    float m_00 = 2.0f * (w * w + x * x) - 1.0f;
+    float m_00 = 1.0f - 2.0f * (y * y + z * z);
     float m_01 = 2.0f * (x * y - w * z);
     float m_02 = 2.0f * (x * z + w * y);
 
     float m_10 = 2.0f * (x * y + w * z);
-    float m_11 = 2.0f * (w * w + y * y) - 1.0f;
+    float m_11 = 1.0f - 2.0f * (x * x + z * z);
     float m_12 = 2.0f * (y * z - w * x);
 
     float m_20 = 2.0f * (x * z - w * y);
     float m_21 = 2.0f * (y * z + w * x);
-    float m_22 = 2.0f * (w * w + z * z) - 1.0f;
+    float m_22 = 1.0f - 2.0f * (x * x + y * y);
 
     return mat4{m_00, m_10, m_20, 0.f,
                 m_01, m_11, m_21, 0.f,
                 m_02, m_12, m_22, 0.f,
                 0.f,  0.f,  0.f,  1.f};
+
+    // float x = quaternian[0];
+    // float y = quaternian[1];
+    // float z = quaternian[2];
+    // float w = quaternian[3];
+
+    // float m_00 = 2.0f * (w * w + x * x) - 1.0f;
+    // float m_01 = 2.0f * (x * y - w * z);
+    // float m_02 = 2.0f * (x * z + w * y);
+
+    // float m_10 = 2.0f * (x * y + w * z);
+    // float m_11 = 2.0f * (w * w + y * y) - 1.0f;
+    // float m_12 = 2.0f * (y * z - w * x);
+
+    // float m_20 = 2.0f * (x * z - w * y);
+    // float m_21 = 2.0f * (y * z + w * x);
+    // float m_22 = 2.0f * (w * w + z * z) - 1.0f;
+
+    // return mat4{m_00, m_10, m_20, 0.f,
+    //             m_01, m_11, m_21, 0.f,
+    //             m_02, m_12, m_22, 0.f,
+    //             0.f,  0.f,  0.f,  1.f};
 }
 
 //look at matrix:

@@ -285,27 +285,62 @@ struct RTG {
 		vec4 value_at_time(float t);
 	};
 
+	// struct featureMap{
+	// 	std::string format;
+	// 	uint32_t x;
+	// 	uint32_t y;
+	// 	uint32_t n = 0;
+	// 	float* data; 
+	// 	void load_features(std::string src, int c = 0);
+	// };
+
+	struct textureMap{
+		std::string type = "2D";
+		std::string format = "linear";
+		uint32_t x;
+		uint32_t y;
+		uint32_t n = 0;
+		std::vector< uint32_t > data; 
+		uint32_t tex_num = 0;
+		void load_texture(std::string src);
+	};
+
+	uint32_t texture_count = 1; //Once we remove checkers 0 we can make this 0
+	//TODO: hand out numbers on initialization and then
+
 	struct Material {
 		std::string name;
 		std::string normalMap_src;
-		std::string displacementMap_src;
+		textureMap normalMap;
+		uint32_t normal_num;
 		std::string material_type = "lambertian";
+		std::string displacementMap_src;
+		textureMap displacementMap;
+		uint32_t displacement_num;
 
-		vec4 albedo = {0.8f, 0.8f, 0.8f, 0.f};
+		vec4 albedo = {0.8f, 0.8f, 0.8f, 1.f};
 		std::string albedo_src;	
+		textureMap albedoMap;
+		uint32_t albedo_num = 0;
 		float roughness = 1.f;
 		std::string roughness_src;
+		textureMap roughnessMap;
+		uint32_t roughness_num;
 		float metalness = 0.f;
 		std::string metalness_src;
+		textureMap metalnessMap;
+		uint32_t metalness_num;
 
 		uint32_t texture_number = 0;
 	};
 
+	
+
 	struct Environment {
 		std::string name;
 		std::string src;
-		std::string type;
-		std::string format;
+		textureMap texture; //Might want to change to "radiance"
+		uint32_t texNum = 0;
 	};
 
 	struct Light {
@@ -348,8 +383,9 @@ struct RTG {
 	std::map<std::string, Camera> cameras;
 	std::vector<Driver> drivers; //Stored in order
 	std::map<std::string, Material> materials;
-	std::map<std::string, Environment> environments;
+	Environment environment; //SHould be 1
 	std::map<std::string, Light> lights;
+	std::vector<textureMap> textures;
 
 	std::string camera_mode = "scene";
 	Camera active_camera;

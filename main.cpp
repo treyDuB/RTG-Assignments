@@ -1,7 +1,7 @@
 
 #include "RTG.hpp"
 
-#include "A1.hpp"
+#include "A2.hpp"
 
 #include <iostream>
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 		RTG rtg(configuration);
 
 		//initializes global (whole-life-of-application) resources:
-		A1 application(rtg);
+		A2 application(rtg);
 
 		//main loop -- handles events, renders frames, etc:
 		rtg.run(application);

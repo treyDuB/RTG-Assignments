@@ -3,7 +3,7 @@
 #define _USE_MATH_DEFINES
 #endif
 
-#include "A1.hpp"
+#include "A2.hpp"
 
 #include "VK.hpp"
 
@@ -12,9 +12,10 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <stack>          
 
 
-A1::A1(RTG &rtg_) : rtg(rtg_) {
+A2::A2(RTG &rtg_) : rtg(rtg_) {
 	//select a depth format:
 	//  (at least one of these two must be supported, according to the spec; but neither are required)
 	depth_format = rtg.helpers.find_image_format(
@@ -132,7 +133,7 @@ A1::A1(RTG &rtg_) : rtg(rtg_) {
 		VkDescriptorPoolCreateInfo create_info{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			.flags = 0, //because CREATE_FREE_DESCRIPTOR_SET_BIT isn't included, *can't* free individual descriptors allocated from this pool
-			.maxSets = 3 * per_workspace,  //three set per workspace
+			.maxSets = 3 * per_workspace,  //four set per workspace
 			.poolSizeCount = uint32_t(pool_sizes.size()),
 			.pPoolSizes = pool_sizes.data(),
 		};
@@ -261,145 +262,79 @@ A1::A1(RTG &rtg_) : rtg(rtg_) {
 		std::vector< PosNorTexVertex > vertices;
 
 		
-		{ //A [-1,1]x[-1,1]x{0} quadrilateral:
-			plane_vertices.first = uint32_t(vertices.size());
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = -1.0f, .y = -1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
-				.TexCoord{ .s = 0.0f, .t = 0.0f },
-			});
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-				.TexCoord{ .s = 1.0f, .t = 0.0f },
-			});
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-				.TexCoord{ .s = 0.0f, .t = 1.0f },
-			});
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = 1.0f, .y = 1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
-				.TexCoord{ .s = 1.0f, .t = 1.0f },
-			});
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-				.TexCoord{ .s = 0.0f, .t = 1.0f },
-			});
-			vertices.emplace_back(PosNorTexVertex{
-				.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
-				.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-				.TexCoord{ .s = 1.0f, .t = 0.0f },
-			});
+		// { //A [-1,1]x[-1,1]x{0} quadrilateral:
+		// 	plane_vertices.first = uint32_t(vertices.size());
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = -1.0f, .y = -1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
+		// 		.TexCoord{ .s = 0.0f, .t = 0.0f },
+		// 	});
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
+		// 		.TexCoord{ .s = 1.0f, .t = 0.0f },
+		// 	});
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
+		// 		.TexCoord{ .s = 0.0f, .t = 1.0f },
+		// 	});
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = 1.0f, .y = 1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
+		// 		.TexCoord{ .s = 1.0f, .t = 1.0f },
+		// 	});
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
+		// 		.TexCoord{ .s = 0.0f, .t = 1.0f },
+		// 	});
+		// 	vertices.emplace_back(PosNorTexVertex{
+		// 		.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
+		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
+		// 		.TexCoord{ .s = 1.0f, .t = 0.0f },
+		// 	});
 
-			plane_vertices.count = uint32_t(vertices.size()) - plane_vertices.first;
-		}
+		// 	plane_vertices.count = uint32_t(vertices.size()) - plane_vertices.first;
+		// }
 
-		{ //A torus:
-			torus_vertices.first = uint32_t(vertices.size());
+		{// Create mesh vertices
+			for(const auto & [key, value] :rtg.meshes){
+				RTG::Mesh mesh = value;
+				std::cout << "Creating mesh " << key << " with size " << mesh.indices.size() << std::endl;
+				std::cout << "position size " << mesh.position.size() << std::endl;
+				ObjectVertices this_vertices;
+				this_vertices.first	 = uint32_t(vertices.size());
+				//Assume Triangle_List
+				AABB box;
+				box.minX = mesh.position[0];
+				box.maxX = mesh.position[0];
+				box.minY = mesh.position[1];
+				box.maxY = mesh.position[1];
+				box.minZ = mesh.position[2];
+				box.maxZ = mesh.position[2];
 
-			//will paramertize with (u,v) where:
-			// - u is angle around main axis (+z)
-			// - v is angle around the tube
-
-			constexpr float R1 = 0.75f; //main radius
-			constexpr float R2 = 0.15f; //tube radius
-
-			constexpr uint32_t U_STEPS = 20;
-			constexpr uint32_t V_STEPS = 16;
-
-			//texture repeats around the torus:
-			constexpr float V_REPEATS = 2.0f;
-			float U_REPEATS = std::ceil(V_REPEATS / R2 * R1);
-
-			auto emplace_vertex = [&](uint32_t ui, uint32_t vi) {
-				//convert steps to angles:
-				// (doing the mod since trig on 2 M_PI may not exactly match 0)
-				float ua = (ui % U_STEPS) / float(U_STEPS) * 2.0f * float(M_PI);
-				float va = (vi % V_STEPS) / float(V_STEPS) * 2.0f * float(M_PI);
-
-				vertices.emplace_back( PosNorTexVertex{
-					.Position{
-						.x = (R1 + R2 * std::cos(va)) * std::cos(ua),
-						.y = (R1 + R2 * std::cos(va)) * std::sin(ua),
-						.z = R2 * std::sin(va),
-					},
-					.Normal{
-						.x = std::cos(va) * std::cos(ua),
-						.y = std::cos(va) * std::sin(ua),
-						.z = std::sin(va),
-					},
-					.TexCoord{
-						.s = ui / float(U_STEPS) * U_REPEATS,
-						.t = vi / float(V_STEPS) * V_REPEATS,
-					},
-				});
-			};
-
-			for (uint32_t ui = 0; ui < U_STEPS; ++ui) {
-				for (uint32_t vi = 0; vi < V_STEPS; ++vi) {
-					emplace_vertex(ui, vi);
-					emplace_vertex(ui+1, vi);
-					emplace_vertex(ui, vi+1);
-
-					emplace_vertex(ui, vi+1);
-					emplace_vertex(ui+1, vi);
-					emplace_vertex(ui+1, vi+1);
+				//TODO: Material normalMap, displacementMap
+				for(uint32_t idx : mesh.indices){
+					vertices.emplace_back(PosNorTexVertex{
+						.Position{ .x = mesh.position[idx * 3], .y = mesh.position[idx * 3 + 1], .z = mesh.position[idx * 3 + 2] },
+						.Normal{ .x = mesh.normal[idx * 3], .y = mesh.normal[idx * 3 + 1], .z = mesh.normal[idx * 3 + 2]},
+						.TexCoord{ .s = mesh.texcoord[idx * 2], .t = mesh.texcoord[idx * 2 + 1] },
+					});
+					if(mesh.position[idx * 3] < box.minX) box.minX = mesh.position[idx * 3];
+					if(mesh.position[idx * 3 + 1] < box.minY) box.minY = mesh.position[idx * 3 + 1];
+					if(mesh.position[idx * 3 + 2] < box.minZ) box.minZ = mesh.position[idx * 3 + 2];
+					if(mesh.position[idx * 3] > box.minX) box.minX = mesh.position[idx * 3];
+					if(mesh.position[idx * 3 + 1] > box.minY) box.minY = mesh.position[idx * 3 + 1];
+					if(mesh.position[idx * 3 + 2] > box.minZ) box.minZ = mesh.position[idx * 3 + 2];
 				}
+
+
+				this_vertices.count = uint32_t(vertices.size()) - this_vertices.first;
+				mesh_box[key] = box;
+				mesh_vertices[key] = this_vertices;
+
 			}
-
-			torus_vertices.count = uint32_t(vertices.size()) - torus_vertices.first;
-		}
-
-		{//A sphere:
-			sphere_vertices.first = uint32_t(vertices.size());
-
-
-			uint32_t R_STEPS = 10;
-
-			float R = 0.5f;
-			
-			auto emplace_vertex = [&](uint32_t ui, uint32_t vi) {
-				//convert steps to angles:
-				// (doing the mod since trig on 2 M_PI may not exactly match 0)
-				float u = (float(ui) / float(R_STEPS)) * 2.0f * float(M_PI);
-				float v = float(vi) / float(R_STEPS) * float(M_PI);
-
-				vertices.emplace_back( PosNorTexVertex{
-					.Position{
-						.x = R * std::cos(u) * std::sin(v),
-						.y = R * std::sin(u) * std::sin(v),
-						.z = R * std::cos(v),
-					},
-					.Normal{
-						.x = std::cos(u) * std::sin(v),
-						.y = std::sin(u) * std::sin(v),
-						.z = std::cos(v),
-					},
-					.TexCoord{
-						.s = u,
-						.t = v,
-					},
-				});
-			};
-
-			
-			for (uint32_t ui = 0; ui < R_STEPS; ++ui) {
-				for (uint32_t vi = 0; vi < R_STEPS; ++vi) {
-					emplace_vertex(ui, vi);
-					emplace_vertex(ui+1, vi+1);
-					emplace_vertex(ui+1, vi);
-
-					emplace_vertex(ui, vi);
-					emplace_vertex(ui, vi+1);
-					emplace_vertex(ui+1, vi+1);
-				}
-			}
-			
-
-			sphere_vertices.count = uint32_t(vertices.size()) - sphere_vertices.first;
 		}
 
 		size_t bytes = vertices.size() * sizeof(vertices[0]);
@@ -417,68 +352,220 @@ A1::A1(RTG &rtg_) : rtg(rtg_) {
 
 
 	{ //make some textures
-		textures.reserve(2);
+		// textures.reserve(rtg.texture);
+		// textures.reserve(rtg.materials.size());
 
-		{ //texture 0 will be a dark grey / light grey checkerboard with a red square at the origin.
-			//actually make the texture:
-			uint32_t size = 128;
-			std::vector< uint32_t > data;
-			data.reserve(size * size);
-			for (uint32_t y = 0; y < size; ++y) {
-				float fy = (y + 0.5f) / float(size);
-				for (uint32_t x = 0; x < size; ++x) {
-					float fx = (x + 0.5f) / float(size);
-					//highlight the origin:
-					if      (fx < 0.05f && fy < 0.05f) data.emplace_back(0xff0000ff); //red
-					else if ( (fx < 0.5f) == (fy < 0.5f)) data.emplace_back(0xff444444); //dark grey
-					else data.emplace_back(0xffbbbbbb); //light grey
-				}
-			}
-			assert(data.size() == size*size);
+		//Loop over materials to get the textures
+		// for(const auto & [key, value] : rtg.materials){
+		// 	RTG::Material material = value;
 
-			//make a place for the texture to live on the GPU
-			textures.emplace_back(rtg.helpers.create_image(
-				VkExtent2D{ .width = size , .height = size }, //size of image
-				VK_FORMAT_R8G8B8A8_UNORM, //how to interpret image data (in this case, linearly-encoded 8-bit RGBA)
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
-				Helpers::Unmapped
-			));
+		// }
 
-			//transfer data:
-			rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
+
+		// { //texture 0 will be a dark grey / light grey checkerboard with a red square at the origin.
+		// 	//actually make the texture:
+		// 	uint32_t size = 128;
+		// 	std::vector< uint32_t > data;
+		// 	data.reserve(size * size);
+		// 	for (uint32_t y = 0; y < size; ++y) {
+		// 		float fy = (y + 0.5f) / float(size);
+		// 		for (uint32_t x = 0; x < size; ++x) {
+		// 			float fx = (x + 0.5f) / float(size);
+		// 			//highlight the origin:
+		// 			if      (fx < 0.05f && fy < 0.05f) data.emplace_back(0xff0000ff); //red
+		// 			else if ( (fx < 0.5f) == (fy < 0.5f)) data.emplace_back(0xff444444); //dark grey
+		// 			else data.emplace_back(0xffbbbbbb); //light grey
+		// 		}
+		// 	}
+		// 	assert(data.size() == size*size);
+
+		// 	//make a place for the texture to live on the GPU
+		// 	textures.emplace_back(rtg.helpers.create_image(
+		// 		VkExtent2D{ .width = size , .height = size }, //size of image
+		// 		VK_FORMAT_R8G8B8A8_UNORM, //how to interpret image data (in this case, linearly-encoded 8-bit RGBA)
+		// 		VK_IMAGE_TILING_OPTIMAL,
+		// 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
+		// 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
+		// 		Helpers::Unmapped
+		// 	));
+
+		// 	//transfer data:
+		// 	rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
+		// }
+
+		// { //texture 1 will be a classic 'xor' texture
+		// 	//actually make the texture:
+		// 	uint32_t size = 256;
+		// 	std::vector< uint32_t > data;
+		// 	data.reserve(size * size);
+		// 	for (uint32_t y = 0; y < size; ++y) {
+		// 		for (uint32_t x = 0; x < size; ++x) {
+		// 			uint8_t r = uint8_t(x) ^ uint8_t(y);
+		// 			uint8_t g = uint8_t(x + 128) ^ uint8_t(y);
+		// 			uint8_t b = uint8_t(x) ^ uint8_t(y + 27);
+		// 			uint8_t a = 0xff;
+		// 			data.emplace_back( uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24) );
+		// 		}
+		// 	}
+		// 	assert(data.size() == size*size);
+
+		// 	//make a place for the texture to live on the GPU:
+		// 	textures.emplace_back(rtg.helpers.create_image(
+		// 		VkExtent2D{ .width = size , .height = size }, //size of image
+		// 		VK_FORMAT_R8G8B8A8_SRGB, //how to interpret image data (in this case, SRGB-encoded 8-bit RGBA)
+		// 		VK_IMAGE_TILING_OPTIMAL,
+		// 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
+		// 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
+		// 		Helpers::Unmapped
+		// 	));
+
+		// 	//transfer data:
+		// 	rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
+		// }
+
+		{// Load environment texture as 0
+			rtg.environment.texture.tex_num = 1;
+			rtg.environment.texNum = 1;
+			if(rtg.environment.src.compare("") != 0){
+				rtg.textures.push_back(rtg.environment.texture);
+				std::cout << "loading environment texture!!!! " << rtg.texture_count << std::endl;
+			} else{
+				rtg.environment.texture.format = "rgbe";
+				rtg.environment.texture.x = 1;
+				rtg.environment.texture.y = 1;
+				uint8_t r = uint8_t(0.8f * 255);
+				uint8_t g = uint8_t(0.8f * 255);
+				uint8_t b = uint8_t(0.8f * 255);
+				uint8_t a = uint8_t(255);
+				std::vector< uint32_t > data;
+				data.emplace_back( uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24) );
+				rtg.environment.texture.data = data;
+				rtg.textures.push_back(rtg.environment.texture);
+			}	
+
+			// std::vector< uint32_t > data = texture.data;
+			// textures.emplace_back(rtg.helpers.create_image(
+			// 	VkExtent2D{ .width = texture.x , .height = texture.y }, //size of image
+			// 	VK_FORMAT_R8G8B8A8_SRGB, //how to interpret image data (in this case, SRGB-encoded 8-bit RGBA)
+			// 	VK_IMAGE_TILING_OPTIMAL,
+			// 	VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
+			// 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
+			// 	Helpers::Unmapped,
+			// 	VK_IMAGE_VIEW_TYPE_CUBE,
+			// 	VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, //Flags
+			// 	6 //Set Array layers
+			// ));
+
+			// //transfer data:
+			// rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
 		}
 
-		{ //texture 1 will be a classic 'xor' texture
-			//actually make the texture:
-			uint32_t size = 256;
-			std::vector< uint32_t > data;
-			data.reserve(size * size);
-			for (uint32_t y = 0; y < size; ++y) {
-				for (uint32_t x = 0; x < size; ++x) {
-					uint8_t r = uint8_t(x) ^ uint8_t(y);
-					uint8_t g = uint8_t(x + 128) ^ uint8_t(y);
-					uint8_t b = uint8_t(x) ^ uint8_t(y + 27);
-					uint8_t a = 0xff;
-					data.emplace_back( uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24) );
-				}
-			}
-			assert(data.size() == size*size);
+		{// Make origin normal for non normal maps
 
-			//make a place for the texture to live on the GPU:
-			textures.emplace_back(rtg.helpers.create_image(
-				VkExtent2D{ .width = size , .height = size }, //size of image
-				VK_FORMAT_R8G8B8A8_SRGB, //how to interpret image data (in this case, SRGB-encoded 8-bit RGBA)
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
-				Helpers::Unmapped
-			));
-
-			//transfer data:
-			rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
 		}
+
+
+		rtg.texture_count = 1;
+		// rtg.normal_count = 1;
+		
+		for(const auto & [key, value] : rtg.materials){
+			RTG::Material material = value;
+			if(material.material_type.compare("lambertian") == 0){
+				if(material.albedo_src.compare("")==0 || material.albedoMap.x == 0){ //Constant Albedo
+					material.albedoMap.x = 1;
+					material.albedoMap.y = 1;
+					uint8_t r = uint8_t(material.albedo[0] * 255);
+					uint8_t g = uint8_t(material.albedo[1] * 255);
+					uint8_t b = uint8_t(material.albedo[2] * 255);
+					uint8_t a = uint8_t(material.albedo[3] * 255);
+					std::vector< uint32_t > data;
+					data.emplace_back(uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24));
+					material.albedoMap.data = data;
+				} //else albedoMap already created
+				material.albedoMap.tex_num = rtg.texture_count;
+				// material.albedo_num = rtg.texture_count + 2;
+				rtg.materials[key] = material;
+				rtg.textures.push_back(material.albedoMap);
+				std::cout << "Making lambertian material texture!!!! " << rtg.texture_count << std::endl;
+				rtg.texture_count++;	
+			}
+			if(material.material_type.compare("pbr") == 0){
+				if(material.albedo_src.compare("")==0 || material.albedoMap.x == 0){ //Constant Albedo
+					material.albedoMap.x = 1;
+					material.albedoMap.y = 1;
+					uint8_t r = uint8_t(material.albedo[0] * 255);
+					uint8_t g = uint8_t(material.albedo[1] * 255);
+					uint8_t b = uint8_t(material.albedo[2] * 255);
+					uint8_t a = uint8_t(material.albedo[3] * 255);
+					std::vector< uint32_t > data;
+					data.emplace_back(uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24));
+					material.albedoMap.data = data;
+					material.albedoMap.format = "linear";
+				} //else albedoMap already created
+				material.albedoMap.tex_num = rtg.texture_count;
+				// material.albedo_num = rtg.texture_count + 2;
+				rtg.materials[key] = material;
+				rtg.textures.push_back(material.albedoMap);
+				std::cout << "Making pbr material texture!!!! " << rtg.texture_count << std::endl;
+				rtg.texture_count++;	
+			}
+			if(material.material_type.compare("environment") == 0){
+				material.albedoMap.tex_num = 0;
+				// material.albedo_num = 0;
+				
+			}
+
+		}
+		
+		assert(rtg.textures.size() == rtg.texture_count);
+
+		for(uint32_t i = 0 ; i < rtg.texture_count; i++){
+			RTG::textureMap texture = rtg.textures[i];
+			texture.tex_num = i;
+			rtg.textures[i] = texture;
+			std::vector< uint32_t > data = texture.data;
+			assert(data.size() == texture.x * texture.y);
+
+			VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+			if(texture.type.compare("linear") == 0){
+					format = VK_FORMAT_R8G8B8A8_UNORM; //how to interpret image data (in this case, linearly-encoded 8-bit RGBA)	
+			} else if(texture.type.compare("srgb") == 0){
+					format = VK_FORMAT_R8G8B8A8_SRGB; //how to interpret image data (in this case, SRGB-encoded 8-bit RGBA)
+			}
+
+			if(texture.type.compare("cube")==0 && false){
+				textures.emplace_back(rtg.helpers.create_image(
+					VkExtent2D{ .width = texture.x , .height = texture.y }, //size of image
+					format, 	
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
+					Helpers::Unmapped,
+					VK_IMAGE_VIEW_TYPE_CUBE,
+					VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, //Flags
+					6 //Set Array layers
+				));
+				//transfer data:
+				rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back(), 6);
+			} else { //2D
+				textures.emplace_back(rtg.helpers.create_image(
+					VkExtent2D{ .width = texture.x , .height = texture.y }, //size of image
+					format, 
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, //will sample and upload
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, //should be device-local
+					Helpers::Unmapped,
+					VK_IMAGE_VIEW_TYPE_2D,
+					0,
+					1
+				));
+
+				//transfer data:
+				rtg.helpers.transfer_to_image(data.data(), sizeof(data[0]) * data.size(), textures.back());
+			}
+		}
+
+
 	}
 
 	{ //make image views for the textures
@@ -488,7 +575,7 @@ A1::A1(RTG &rtg_) : rtg(rtg_) {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.flags = 0,
 				.image = image.handle,
-				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.viewType = image.viewType,
 				.format = image.format,
 				// .components sets swizzling and is fine when zero-initialized
 				.subresourceRange{
@@ -590,14 +677,69 @@ A1::A1(RTG &rtg_) : rtg(rtg_) {
 		}
 
 		vkUpdateDescriptorSets( rtg.device, uint32_t(writes.size()), writes.data(), 0, nullptr );
+	} 
+
+	{ //create the environment descriptor pool
+
+		std::array< VkDescriptorPoolSize, 1> pool_sizes{
+			VkDescriptorPoolSize{
+				.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 1 * 1, //one descriptor per set, one set per environment, one environment
+			},
+		};
+		
+		VkDescriptorPoolCreateInfo create_info{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.flags = 0, //because CREATE_FREE_DESCRIPTOR_SET_BIT isn't included, *can't* free individual descriptors allocated from this pool
+			.maxSets = 1, //one set per environment, one environment
+			.poolSizeCount = uint32_t(pool_sizes.size()),
+			.pPoolSizes = pool_sizes.data(),
+		};
+
+		VK( vkCreateDescriptorPool(rtg.device, &create_info, nullptr, &environment_descriptor_pool) );
+	}
+
+	{//Allocate and write the environment
+
+		VkDescriptorSetAllocateInfo alloc_info{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptor_pool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &objects_pipeline.set3_ENVIRONMENT,
+		};
+
+		VkDescriptorImageInfo info = VkDescriptorImageInfo{
+				.sampler = texture_sampler,
+				.imageView = texture_views[0],
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			};
+
+		VkWriteDescriptorSet write = VkWriteDescriptorSet{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = texture_descriptors[0],
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.pImageInfo = &info,
+			};
+
+		vkUpdateDescriptorSets( rtg.device, 1, &write, 0, nullptr );
+	}
+
+
+
+
+	{//Initialize cameras
+		//Scene camera
 	}
 }
 
-A1::~A1() {
+A2::~A2() {
 	//just in case rendering is still in flight, don't destroy resources:
 	//(not using VK macro to avoid throw-ing in destructor)
 	if (VkResult result = vkDeviceWaitIdle(rtg.device); result != VK_SUCCESS) {
-		std::cerr << "Failed to vkDeviceWaitIdle in A1::~A1 [" << string_VkResult(result) << "]; continuing anyway." << std::endl;
+		std::cerr << "Failed to vkDeviceWaitIdle in A2::~A2 [" << string_VkResult(result) << "]; continuing anyway." << std::endl;
 	}
 
 	if (texture_descriptor_pool) {
@@ -691,7 +833,7 @@ A1::~A1() {
 	}
 }
 
-void A1::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
+void A2::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
 	//clean up existing framebuffers (and depth image):
 	if (swapchain_depth_image.handle != VK_NULL_HANDLE) {
 		destroy_framebuffers();
@@ -750,7 +892,7 @@ void A1::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
 	//TODO: Swapchain print
 }
 
-void A1::destroy_framebuffers() {
+void A2::destroy_framebuffers() {
 	for (VkFramebuffer &framebuffer : swapchain_framebuffers) {
 		assert(framebuffer != VK_NULL_HANDLE);
 		vkDestroyFramebuffer(rtg.device, framebuffer, nullptr);
@@ -766,7 +908,7 @@ void A1::destroy_framebuffers() {
 }
 
 
-void A1::render(RTG &rtg_, RTG::RenderParams const &render_params) {
+void A2::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 	//assert that parameters are valid:
 	assert(&rtg == &rtg_);
 	assert(render_params.workspace_index < workspaces.size());
@@ -1047,17 +1189,6 @@ void A1::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 				vkCmdDraw(workspace.command_buffer, inst.vertices.count, 1, inst.vertices.first, index);
 			}
 
-			//draw all vertices:
-			// vkCmdDraw(workspace.command_buffer, uint32_t(object_vertices.size / sizeof(ObjectsPipeline::Vertex)),
-			// 			1, 0, 0);
-
-			//draw torus vertices:
-			// vkCmdDraw(workspace.command_buffer, torus_vertices.count, 1, torus_vertices.first, 0);
-
-			//draw Sphere vertices:
-			// vkCmdDraw(workspace.command_buffer, sphere_vertices.count, 1, sphere_vertices.first, 0);
-
-
 		}
 
 
@@ -1096,31 +1227,72 @@ void A1::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 
 
 
-void A1::update(float dt) {
-	time = std::fmod( time + dt, 60.0f);
-
-	{ //camera orbiting the origin:
-		float ang = float(M_PI) * 2.f * 4.f * (time / 60.f);
-		CLIP_FROM_WORLD = perspective(
-			60.f / float(M_PI) * 180.f, //vfov
-			rtg.swapchain_extent.width / float(rtg.swapchain_extent.height), //aspect
-			0.1f, //near
-			1000.f //far
-		) * look_at(
-			3.f * std::cos(ang), 3.f * std::sin(ang), 1.f, //eye
-			0.f, 0.f, 0.5, //target
-			0.f, 0.f, 1.f //up
-		);
+void A2::update(float dt) {
+	if(!rtg.paused){
+		time = time + dt;
 	}
+	object_instances.clear();
 
+	// { //camera orbiting the origin:
+	// 	float ang = float(M_PI) * 2.f * 4.f * (time / 60.f);
+	// 	CLIP_FROM_WORLD = perspective(
+	// 		60.f / float(M_PI) * 180.f, //vfov
+	// 		rtg.swapchain_extent.width / float(rtg.swapchain_extent.height), //aspect
+	// 		0.1f, //near
+	// 		1000.f //far
+	// 	) * look_at(
+	// 		3.f * std::cos(ang), 3.f * std::sin(ang), 1.f, //eye
+	// 		0.f, 0.f, 0.5f, //target
+	// 		0.f, 0.f, 1.f //up
+	// 	);
+	// }
+
+	
+	//Driver motion
+	float t = time; // /60.f;
+	for(RTG::Driver driver : rtg.drivers){
+		std::string node_name = driver.node;
+		RTG::Node this_node = rtg.nodes[node_name];
+		vec4 value = driver.value_at_time(t);
+
+		// std::cout << "Driver " << driver.name << " time : " << t << std::endl;
+		
+		if(driver.channel.compare("translation") == 0){
+			this_node.translation = value;
+		}else if(driver.channel.compare("scale") == 0){
+			this_node.scale = value;
+		}else if(driver.channel.compare("rotation") == 0){
+			this_node.rotation = value;
+			// this_node.rotation[0] = value[0];
+			// this_node.rotation[1] = value[1];
+			// this_node.rotation[2] = value[2];
+			// this_node.rotation[3] = value[3];
+			// float v0 = this_node.rotation[0];
+			// float v1 = this_node.rotation[1];
+			// float v2 = this_node.rotation[2];
+			// float v3 = this_node.rotation[3];
+			// // std::cout << "rotated {" << v0 << " , " << v1 << " , " v2 << " , " v3 << "}" << std::endl;
+			// std::cout << "rotated " << v0;
+			// std::cout << " ' " << v1 ;
+			// std::cout << " ' " << v2 ;
+			// std::cout << " ' " << v3  << std::endl;
+		}else{
+			std::cout << "No channel matching -> " << driver.channel << std::endl;
+		}
+		//Update transforms
+		// std::cout << "Updating " << driver.channel << " of " <<  driver.node << std::endl;
+		this_node.make_parent_from_local();
+	}
+	
+	 
 	{ //static sun and sky:
 		world.SKY_DIRECTION.x = 0.0f;
 		world.SKY_DIRECTION.y = 0.0f;
 		world.SKY_DIRECTION.z = 1.0f;
 
-		world.SKY_ENERGY.r = 0.1f;
-		world.SKY_ENERGY.g = 0.1f;
-		world.SKY_ENERGY.b = 0.2f;
+		world.SKY_ENERGY.r = 0.2f;
+		world.SKY_ENERGY.g = 0.2f;
+		world.SKY_ENERGY.b = 0.4f;
 
 		world.SUN_DIRECTION.x = 6.0f / 23.0f;
 		world.SUN_DIRECTION.y = 13.0f / 23.0f;
@@ -1130,49 +1302,146 @@ void A1::update(float dt) {
 		world.SUN_ENERGY.g = 1.0f;
 		world.SUN_ENERGY.b = 0.9f;
 	}
+
+
+
+	// MOM get the camera
+	if(rtg.camera_mode.compare("user") == 0){
+		RTG::OrbitCamera oc = rtg.user_camera;
+		CLIP_FROM_WORLD = perspective(
+			rtg.active_camera.vfov, //vfov
+			rtg.active_camera.aspect, //aspect
+			rtg.active_camera.near, //near
+			rtg.active_camera.far //far
+		) * look_at(
+			oc.radius * std::cos(oc.azimuth) * std::sin(oc.elevation), 
+			oc.radius * std::sin(oc.azimuth) * std::sin(oc.elevation), 
+			oc.radius * std::cos(oc.elevation),
+			oc.target[0], oc.target[1], oc.target[2], //target
+			0.f, 0.f, 1.f //up
+		);
+	} else {
+		for(std::string root : rtg.scene.roots){
+			RTG::Node this_node = rtg.nodes[root];
+			
+			std::stack<mat4> node_transform_stack;
+			std::stack<RTG::Node> node_stack;
+			
+			mat4 origin = mat4{1.f, 0.f, 0.f, 0.f, 
+								0.f, 1.f, 0.f, 0.f,
+								0.f, 0.f, 1.f, 0.f,
+								0.f, 0.f, 0.f, 1.f};
+			node_transform_stack.push(origin); //Store World from parent transform
+			node_stack.push(this_node);
+			while(!node_stack.empty()){
+				this_node = node_stack.top();
+				node_stack.pop();
+				mat4 WORLD_FROM_PARENT = node_transform_stack.top();
+				node_transform_stack.pop();
+				mat4 WORLD_FROM_LOCAL = WORLD_FROM_PARENT * this_node.parent_from_local;
+
+				for(std::string child : this_node.children){
+					node_stack.push(rtg.nodes[child]);
+					node_transform_stack.push(WORLD_FROM_LOCAL);
+				}
+				if(!this_node.camera.empty() && this_node.camera.compare(rtg.active_camera.name) == 0){
+					RTG::Camera camera = rtg.cameras[this_node.camera];
+					// float ang = float(M_PI) * 2.f * 4.f * (time / 60.f);
+					vec4 eye = WORLD_FROM_LOCAL * vec4{0.f, 0.f, 0.f, 1.f};
+					vec4 target = WORLD_FROM_LOCAL * vec4{0.f, 0.f, -1.f, 1.f};
+					vec4 up = WORLD_FROM_LOCAL * vec4{0.f, 1.f, 0.f, 1.f};
+
+					CLIP_FROM_WORLD = perspective(
+						camera.vfov, //vfov
+						camera.aspect, //aspect
+						camera.near, //near
+						camera.far //far
+					) * look_at(
+						eye[0]/eye[3], eye[1]/eye[3], eye[2]/eye[3], //eye
+						target[0]/target[3], target[1]/target[3], target[2]/target[3], //target
+						up[0], up[1], up[2]//up
+					);
+					// std::cout << "Eye " << eye[0] << " , " << eye[1] <<" , " << eye[2] <<" , " << eye[3]  << std::endl;
+					// std::cout << "Target " << target[0] << " , " << target[1] <<" , " << target[2] <<" , " << target[3]  << std::endl;
+				}
+				
+			}
+		}
+	}
 	
-	{ //make some crossing lines at different depths:
-		lines_vertices.clear();
-		constexpr size_t count = 2 * 50 + 2 * 50;
-		lines_vertices.reserve(count);
-		//horizontal lines at sin z
-		for (uint32_t i = 0; i < 50; ++i) {
-			float y = (i + 0.5f) / 50.0f * 2.0f - 1.0f;
-			float z = 0.2f + std::sin(float(M_PI) * std::fmod(i + time * 2.f, 50.f) / 25.0f);
-			lines_vertices.emplace_back(PosColVertex{
-				.Position{.x = -1.0f, .y = y, .z = z},
-				.Color{ .r = 0xff, .g = 0x00, .b = 0x00, .a = 0xff},
-			});
-			lines_vertices.emplace_back(PosColVertex{
-				.Position{.x = 1.0f, .y = y, .z = z},
-				.Color{ .r = 0xff, .g = 0x00, .b = 0x00, .a = 0xff},
-			});
+	//Find that mesh
+	for(std::string root : rtg.scene.roots){
+		RTG::Node this_node = rtg.nodes[root];
+		
+		std::stack<mat4> node_transform_stack;
+		std::stack<RTG::Node> node_stack;
+		
+		mat4 origin = mat4{1.f, 0.f, 0.f, 0.f, 
+							0.f, 1.f, 0.f, 0.f,
+							0.f, 0.f, 1.f, 0.f,
+							0.f, 0.f, 0.f, 1.f};
+		node_transform_stack.push(origin); //Store World from parent transform
+		node_stack.push(this_node);
+		while(!node_stack.empty()){
+			this_node = node_stack.top();
+			node_stack.pop();
+			mat4 WORLD_FROM_PARENT = node_transform_stack.top();
+			node_transform_stack.pop();
+			mat4 WORLD_FROM_LOCAL = WORLD_FROM_PARENT * this_node.parent_from_local;
+
+			for(std::string child : this_node.children){
+				node_stack.push(rtg.nodes[child]);
+				node_transform_stack.push(WORLD_FROM_LOCAL);
+			}
+
+			
+
+			//Check the Mesh
+			if(!this_node.mesh.empty()){
+				//Check culling
+				RTG::Mesh this_mesh = rtg.meshes[this_node.mesh];
+				if(in_view(mesh_box[this_mesh.name], WORLD_FROM_LOCAL)){
+					// RTG::Material this_material;
+					uint32_t tex_num = rtg.materials[this_mesh.material].albedoMap.tex_num;
+					
+					// uint32_t tex_num = rtg.materials[this_mesh.material].albedo_num;
+					// if(tex_num > 1){
+					// 	std::cout << "using texture number: " << tex_num <<std::endl;
+					// }
+					// if(this_mesh.material.compare("") != 0){
+					// 	tex_num = rtg.materials[this_mesh.material].albedoMap.tex_num;
+					// }
+					object_instances.emplace_back(ObjectInstance{
+						.vertices = mesh_vertices[this_mesh.name],
+						.transform{
+							.CLIP_FROM_LOCAL = CLIP_FROM_WORLD * WORLD_FROM_LOCAL,
+							.WORLD_FROM_LOCAL = WORLD_FROM_LOCAL,
+							.WORLD_FROM_LOCAL_NORMAL = WORLD_FROM_LOCAL,
+						},
+						.texture = tex_num,
+					});
+				}
+			}
+			//Check the Light
+			if(!this_node.light.empty()){
+				
+			}
+			//TODO: Environment later
+			// if(!this_node.mesh){
+				
+			// }
 		}
-		//vertical lines cos z 
-		for (uint32_t i = 0; i < 50; ++i) {
-			float x = (i + 0.5f) / 50.0f * 2.0f - 1.0f;
-			float z = 0.2f + std::cos(float(M_PI) * std::fmod(i + time * 2.f, 50.f) / 25.0f);
-			lines_vertices.emplace_back(PosColVertex{
-				.Position{.x = x, .y =-1.0f, .z = z},
-				.Color{ .r = 0x00, .g = 0x00, .b = 0xff, .a = 0xff},
-			});
-			lines_vertices.emplace_back(PosColVertex{
-				.Position{.x = x, .y = 1.0f, .z = z},
-				.Color{ .r = 0x00, .g = 0x00, .b = 0xff, .a = 0xff},
-			});
-		}
-		assert(lines_vertices.size() == count);
 	}
 
-	{ //make some objects:
-		object_instances.clear();
 
+	{ //make some objects:
+		
 		{ //plane translated +x by one unit:
 			mat4 WORLD_FROM_LOCAL{
 				1.0f, 0.0f, 0.0f, 0.0f,
 				0.0f, 1.0f, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
-				1.0f, 0.0f, 0.0f, 1.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
 			};
 
 			
@@ -1207,6 +1476,7 @@ void A1::update(float dt) {
 					.WORLD_FROM_LOCAL = WORLD_FROM_LOCAL,
 					.WORLD_FROM_LOCAL_NORMAL = WORLD_FROM_LOCAL,
 				},
+				.texture = 0,
 			});
 		}
 		{ //sphere translated +z by and bounce:
@@ -1255,5 +1525,61 @@ void A1::update(float dt) {
 }
 
 
-void A1::on_input(InputEvent const &) {
+void A2::on_input(InputEvent const &input) {
+	if(input.type == InputEvent::KeyDown) {
+		if(input.key.key == 85){ //U
+			std::cout << "Entering USER Camera mode" << std::endl;
+			rtg.camera_mode = "user";
+		}
+		if(input.key.key == 83){ //S
+			std::cout << "Entering SCENE Camera mode" << std::endl;
+			rtg.camera_mode = "scene";
+		}
+		if(input.key.key == 80){ //P
+			if(rtg.paused){
+				std::cout << "unpause at" << time << std::endl;
+				rtg.paused = false;
+			}else{
+				std::cout << "pause at" << time	 << std::endl;
+				rtg.paused = true;
+			}
+		}
+	}
+	if(input.type == InputEvent::MouseButtonDown){
+		mouse_down = true;
+		x0 = input.button.x;
+		y0 = input.button.y;
+	}
+	if(input.type == InputEvent::MouseButtonUp){
+		mouse_down = false;
+	}
+	if(mouse_down && input.type == InputEvent::MouseMotion && rtg.camera_mode.compare("user") == 0){
+		float dx = x0 - input.button.x;
+		float dy = y0 - input.button.y;
+		
+		dx = dx / 180.f;
+		dy = dy / 180.f;
+
+		//Translate 
+		rtg.user_camera.elevation = std::min(std::max(rtg.user_camera.elevation+dy, 0.f), float(M_PI));
+		rtg.user_camera.azimuth += dx;
+		if(rtg.user_camera.azimuth > 2.f * float(M_PI)){
+			rtg.user_camera.azimuth -= 2.f * float(M_PI);
+		} else if(rtg.user_camera.azimuth < 0.f){
+			rtg.user_camera.azimuth += 2.f * float(M_PI);
+		}
+		x0 = input.button.x;
+		y0 = input.button.y;
+	}
+	if(input.type == InputEvent::MouseWheel && rtg.camera_mode.compare("user") == 0){
+		rtg.user_camera.radius = std::max(rtg.user_camera.radius + input.wheel.y, 0.01f);
+	}
+}
+
+void A2::create_frustum(){
+	return;
+}
+
+bool A2::in_view(AABB box, mat4 transform){
+	return true;
 }
