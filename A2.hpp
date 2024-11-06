@@ -76,13 +76,7 @@ struct A2 : RTG::Application {
 		VkDescriptorSetLayout set5_Displacement = VK_NULL_HANDLE;
 
 
-		enum MatType {
-			LAMBERTIAN = 0,
-			PBR = 1,
-			MIRROR = 2,
-			ENVIRONMENT = 3,
-		};
-
+		
 		//types for descriptors:
 		struct World {
 			struct { float x, y, z, padding_; } SKY_DIRECTION;
@@ -106,11 +100,21 @@ struct A2 : RTG::Application {
 
 		using Vertex = PosNorTexVertex;
 
+		int matType = 0;
+
 		VkPipeline handle = VK_NULL_HANDLE;
 
 		void create(RTG &, VkRenderPass render_pass, uint32_t subpass);
 		void destroy(RTG &);
 	} objects_pipeline;
+
+	enum MatType {
+		LAMBERTIAN = 0,
+		PBR = 1,
+		MIRROR = 2,
+		ENVIRONMENT = 3,
+	};
+
 
 	//pools from which per-workspace things are allocated:
 	VkCommandPool command_pool = VK_NULL_HANDLE;

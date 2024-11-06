@@ -10,7 +10,7 @@ static std::array< VkVertexInputBindingDescription, 1 > bindings{
     }
 };
 
-static std::array< VkVertexInputAttributeDescription, 3> attributes {
+static std::array< VkVertexInputAttributeDescription, 4> attributes {
     VkVertexInputAttributeDescription{
         .location = 0,
         .binding = 0,
@@ -28,6 +28,12 @@ static std::array< VkVertexInputAttributeDescription, 3> attributes {
         .binding = 0,
         .format = VK_FORMAT_R32G32_SFLOAT,
         .offset = offsetof(PosNorTexVertex, TexCoord),
+    },
+    VkVertexInputAttributeDescription{
+        .location = 3,
+        .binding = 0,
+        .format = VK_FORMAT_R8_UINT,
+        .offset = offsetof(PosNorTexVertex, MatType),
     },
 };
 

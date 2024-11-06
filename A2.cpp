@@ -261,40 +261,6 @@ A2::A2(RTG &rtg_) : rtg(rtg_) {
 	{ //create object vertices
 		std::vector< PosNorTexVertex > vertices;
 
-		
-		// { //A [-1,1]x[-1,1]x{0} quadrilateral:
-		// 	plane_vertices.first = uint32_t(vertices.size());
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = -1.0f, .y = -1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
-		// 		.TexCoord{ .s = 0.0f, .t = 0.0f },
-		// 	});
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-		// 		.TexCoord{ .s = 1.0f, .t = 0.0f },
-		// 	});
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-		// 		.TexCoord{ .s = 0.0f, .t = 1.0f },
-		// 	});
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = 1.0f, .y = 1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f },
-		// 		.TexCoord{ .s = 1.0f, .t = 1.0f },
-		// 	});
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = -1.0f, .y = 1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-		// 		.TexCoord{ .s = 0.0f, .t = 1.0f },
-		// 	});
-		// 	vertices.emplace_back(PosNorTexVertex{
-		// 		.Position{ .x = 1.0f, .y = -1.0f, .z = 0.0f },
-		// 		.Normal{ .x = 0.0f, .y = 0.0f, .z = 1.0f},
-		// 		.TexCoord{ .s = 1.0f, .t = 0.0f },
-		// 	});
-
 		// 	plane_vertices.count = uint32_t(vertices.size()) - plane_vertices.first;
 		// }
 
@@ -314,12 +280,25 @@ A2::A2(RTG &rtg_) : rtg(rtg_) {
 				box.minZ = mesh.position[2];
 				box.maxZ = mesh.position[2];
 
+				uint8_t matType = 0;
+				RTG::Material material = rtg.materials[mesh.material];
+				if(material.material_type.compare("lambertian") == 0){
+					matType = MatType::LAMBERTIAN;
+				} else if(material.material_type.compare("pbr") == 0){
+					matType = MatType::PBR;
+				} else if(material.material_type.compare("mirror") == 0){
+					matType = MatType::MIRROR;
+				} else if(material.material_type.compare("environment") == 0){
+					matType = MatType::ENVIRONMENT;
+				}
+
 				//TODO: Material normalMap, displacementMap
 				for(uint32_t idx : mesh.indices){
 					vertices.emplace_back(PosNorTexVertex{
 						.Position{ .x = mesh.position[idx * 3], .y = mesh.position[idx * 3 + 1], .z = mesh.position[idx * 3 + 2] },
 						.Normal{ .x = mesh.normal[idx * 3], .y = mesh.normal[idx * 3 + 1], .z = mesh.normal[idx * 3 + 2]},
 						.TexCoord{ .s = mesh.texcoord[idx * 2], .t = mesh.texcoord[idx * 2 + 1] },
+						.MatType{ .m = matType},
 					});
 					if(mesh.position[idx * 3] < box.minX) box.minX = mesh.position[idx * 3];
 					if(mesh.position[idx * 3 + 1] < box.minY) box.minY = mesh.position[idx * 3 + 1];
@@ -461,11 +440,23 @@ A2::A2(RTG &rtg_) : rtg(rtg_) {
 		}
 
 		{// Make origin normal for non normal maps
-
+			RTG::textureMap texture;
+			texture.format = "linear";
+			texture.x = 1;
+			texture.y = 1;
+			uint8_t r = uint8_t(0.5f * 255);
+			uint8_t g = uint8_t(0.5f * 255);
+			uint8_t b = uint8_t(255);
+			uint8_t a = uint8_t(255);
+			std::vector< uint32_t > data;
+			data.emplace_back( uint32_t(r) | (uint32_t(g) << 8) | (uint32_t(b) << 16) | (uint32_t(a) << 24) );
+			texture.data = data;
+			rtg.textures.push_back(texture);
+			rtg.default_normal = 1;
 		}
 
 
-		rtg.texture_count = 1;
+		rtg.texture_count = 2;
 		// rtg.normal_count = 1;
 		
 		for(const auto & [key, value] : rtg.materials){
@@ -510,9 +501,15 @@ A2::A2(RTG &rtg_) : rtg(rtg_) {
 				rtg.texture_count++;	
 			}
 			if(material.material_type.compare("environment") == 0){
-				material.albedoMap.tex_num = 0;
+				material.albedoMap.tex_num = rtg.environment.texture.tex_num;
 				// material.albedo_num = 0;
-				
+			}
+
+			//Set the normals
+			if(material.normalMap_src.compare("") == 0){
+				material.normalMap.tex_num = rtg.default_normal;
+			}else {
+				material.normalMap.tex_num = rtg.default_normal;
 			}
 
 		}
@@ -679,53 +676,55 @@ A2::A2(RTG &rtg_) : rtg(rtg_) {
 		vkUpdateDescriptorSets( rtg.device, uint32_t(writes.size()), writes.data(), 0, nullptr );
 	} 
 
-	{ //create the environment descriptor pool
 
-		std::array< VkDescriptorPoolSize, 1> pool_sizes{
-			VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.descriptorCount = 1 * 1, //one descriptor per set, one set per environment, one environment
-			},
-		};
+
+	// { //create the environment descriptor pool
+
+	// 	std::array< VkDescriptorPoolSize, 1> pool_sizes{
+	// 		VkDescriptorPoolSize{
+	// 			.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	// 			.descriptorCount = 1 * 1, //one descriptor per set, one set per environment, one environment
+	// 		},
+	// 	};
 		
-		VkDescriptorPoolCreateInfo create_info{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.flags = 0, //because CREATE_FREE_DESCRIPTOR_SET_BIT isn't included, *can't* free individual descriptors allocated from this pool
-			.maxSets = 1, //one set per environment, one environment
-			.poolSizeCount = uint32_t(pool_sizes.size()),
-			.pPoolSizes = pool_sizes.data(),
-		};
+	// 	VkDescriptorPoolCreateInfo create_info{
+	// 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+	// 		.flags = 0, //because CREATE_FREE_DESCRIPTOR_SET_BIT isn't included, *can't* free individual descriptors allocated from this pool
+	// 		.maxSets = 1, //one set per environment, one environment
+	// 		.poolSizeCount = uint32_t(pool_sizes.size()),
+	// 		.pPoolSizes = pool_sizes.data(),
+	// 	};
 
-		VK( vkCreateDescriptorPool(rtg.device, &create_info, nullptr, &environment_descriptor_pool) );
-	}
+	// 	VK( vkCreateDescriptorPool(rtg.device, &create_info, nullptr, &environment_descriptor_pool) );
+	// }
 
-	{//Allocate and write the environment
+	// {//Allocate and write the environment
 
-		VkDescriptorSetAllocateInfo alloc_info{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptor_pool,
-			.descriptorSetCount = 1,
-			.pSetLayouts = &objects_pipeline.set3_ENVIRONMENT,
-		};
+	// 	VkDescriptorSetAllocateInfo alloc_info{
+	// 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+	// 		.descriptorPool = environment_descriptor_pool,
+	// 		.descriptorSetCount = 1,
+	// 		.pSetLayouts = &objects_pipeline.set3_ENVIRONMENT,
+	// 	};
 
-		VkDescriptorImageInfo info = VkDescriptorImageInfo{
-				.sampler = texture_sampler,
-				.imageView = texture_views[0],
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			};
+	// 	VkDescriptorImageInfo info = VkDescriptorImageInfo{
+	// 			.sampler = texture_sampler,
+	// 			.imageView = texture_views[0],
+	// 			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	// 		};
 
-		VkWriteDescriptorSet write = VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = texture_descriptors[0],
-				.dstBinding = 0,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pImageInfo = &info,
-			};
+	// 	VkWriteDescriptorSet write = VkWriteDescriptorSet{
+	// 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	// 			.dstSet = texture_descriptors[0],
+	// 			.dstBinding = 0,
+	// 			.dstArrayElement = 0,
+	// 			.descriptorCount = 1,
+	// 			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	// 			.pImageInfo = &info,
+	// 		};
 
-		vkUpdateDescriptorSets( rtg.device, 1, &write, 0, nullptr );
-	}
+	// 	vkUpdateDescriptorSets( rtg.device, 1, &write, 0, nullptr );
+	// }
 
 
 
@@ -1186,10 +1185,31 @@ void A2::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 					0, nullptr //dynamic offsets count, ptr
 				);
 
+				//bind environment descriptor set:
+				vkCmdBindDescriptorSets(
+					workspace.command_buffer, //command buffer
+					VK_PIPELINE_BIND_POINT_GRAPHICS, //pipeline bind point
+					objects_pipeline.layout, //pipeline layout
+					3, //third set
+					1, &texture_descriptors[0], //descriptor sets count, ptr
+					0, nullptr //dynamic offsets count, ptr
+				);
+
+				//bind environment descriptor set:
+				// vkCmdBindDescriptorSets(
+				// 	workspace.command_buffer, //command buffer
+				// 	VK_PIPELINE_BIND_POINT_GRAPHICS, //pipeline bind point
+				// 	objects_pipeline.layout, //pipeline layout
+				// 	4, //third set
+				// 	1, &texture_descriptors[inst.normal], //descriptor sets count, ptr
+				// 	0, nullptr //dynamic offsets count, ptr
+				// );
+
 				vkCmdDraw(workspace.command_buffer, inst.vertices.count, 1, inst.vertices.first, index);
 			}
-
 		}
+
+
 
 
 		vkCmdEndRenderPass(workspace.command_buffer);
@@ -1403,7 +1423,7 @@ void A2::update(float dt) {
 				if(in_view(mesh_box[this_mesh.name], WORLD_FROM_LOCAL)){
 					// RTG::Material this_material;
 					uint32_t tex_num = rtg.materials[this_mesh.material].albedoMap.tex_num;
-					
+					uint32_t normal_num = rtg.materials[this_mesh.material].normalMap.tex_num;
 					// uint32_t tex_num = rtg.materials[this_mesh.material].albedo_num;
 					// if(tex_num > 1){
 					// 	std::cout << "using texture number: " << tex_num <<std::endl;
@@ -1419,6 +1439,7 @@ void A2::update(float dt) {
 							.WORLD_FROM_LOCAL_NORMAL = WORLD_FROM_LOCAL,
 						},
 						.texture = tex_num,
+						.normal = normal_num,
 					});
 				}
 			}

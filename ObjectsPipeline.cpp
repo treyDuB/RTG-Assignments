@@ -93,26 +93,6 @@ void A2::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass,
 		VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set3_ENVIRONMENT) );
 	}
 
-    { //the set5_Displacement layout has a single descriptor for a sampler2D used in the vertex shader:
-        std::array< VkDescriptorSetLayoutBinding, 1> bindings{
-            VkDescriptorSetLayoutBinding{
-                .binding = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1,
-                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-            },
-        };
-
-        VkDescriptorSetLayoutCreateInfo create_info{
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = uint32_t(bindings.size()),
-            .pBindings = bindings.data(),
-        };
-
-        VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set5_Displacement));
-    }
-
-
     { //the set4_Normal layout has a single descriptor for a sampler2D used in the vertex shader:
         std::array< VkDescriptorSetLayoutBinding, 1> bindings{
             VkDescriptorSetLayoutBinding{
@@ -130,6 +110,25 @@ void A2::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass,
         };
 
         VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set4_Normal));
+    }
+
+    { //the set5_Displacement layout has a single descriptor for a sampler2D used in the vertex shader:
+        std::array< VkDescriptorSetLayoutBinding, 1> bindings{
+            VkDescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+            },
+        };
+
+        VkDescriptorSetLayoutCreateInfo create_info{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = uint32_t(bindings.size()),
+            .pBindings = bindings.data(),
+        };
+
+        VK( vkCreateDescriptorSetLayout(rtg.device, &create_info, nullptr, &set5_Displacement));
     }
 
     { //create pipeline layout:

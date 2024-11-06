@@ -386,6 +386,7 @@ struct RTG {
 	Environment environment; //SHould be 1
 	std::map<std::string, Light> lights;
 	std::vector<textureMap> textures;
+	uint32_t default_normal = 1;
 
 	std::string camera_mode = "scene";
 	Camera active_camera;

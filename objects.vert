@@ -15,16 +15,19 @@ layout(set=1, binding=0, std140) readonly buffer Transforms {
 layout(location=0) in vec3 Position;
 layout(location=1) in vec3 Normal;
 layout(location=2) in vec2 TexCoord;
-//layout(location=3) in vec3 EYE;
+layout(location=3) in int MatType;
+
 
 layout(location=0) out vec3 position;
 layout(location=1) out vec3 normal;
 layout(location=2) out vec2 texCoord;
+layout(location=3) out int matType;
 
 void main() {
-    //float displacement = texture(Displacement, TexCoord).x;
+    //vec3 _Normal = texture(Normals, TexCoord).rgb;
     gl_Position = TRANSFORMS[gl_InstanceIndex].CLIP_FROM_LOCAL * vec4(Position, 1.0);
 	position = mat4x3(TRANSFORMS[gl_InstanceIndex].WORLD_FROM_LOCAL) * vec4(Position, 1.0);
 	normal = mat3(TRANSFORMS[gl_InstanceIndex].WORLD_FROM_LOCAL_NORMAL) * Normal;
 	texCoord = TexCoord;
+    matType = MatType;
 }
