@@ -775,7 +775,7 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 							auto tint = object_json.at("tint").as_array().value();
 							light.tint = {float(tint[0].as_number().value()), 
 										float(tint[1].as_number().value()), 
-										float(tint[2].as_number().value()), 0.f};
+										float(tint[2].as_number().value())};
 						}
 						if(object_json.contains("shadow")){
 							light.shadow = uint32_t(object_json.at("shadow").as_number().value());
@@ -796,8 +796,8 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						} else if(object_json.contains("spot")){
 							auto spot_obj = object_json.at("spot").as_object().value();
 							light.light_type = "spot";
-							light.angle = float(spot_obj.at("angle").as_number().value());
-							light.strength = float(spot_obj.at("strength").as_number().value());
+							light.radius = float(spot_obj.at("radius").as_number().value());
+							light.power = float(spot_obj.at("power").as_number().value());
 							if(spot_obj.contains("limit")){
 								light.limit = float(spot_obj.at("limit").as_number().value());
 							}

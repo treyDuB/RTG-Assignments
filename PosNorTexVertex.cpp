@@ -32,7 +32,7 @@ static std::array< VkVertexInputAttributeDescription, 4> attributes {
     VkVertexInputAttributeDescription{
         .location = 3,
         .binding = 0,
-        .format = VK_FORMAT_R8_UINT,
+        .format = VK_FORMAT_R32_UINT,
         .offset = offsetof(PosNorTexVertex, MatType),
     },
 };

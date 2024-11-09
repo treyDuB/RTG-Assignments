@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>15-472-s24: A3 - Lights</title>
+<style>
+/* feel free to style your report in a fancier way! */
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;700&Anonymous+Pro&display=swap');
+
+html {
+	background:#505055;
+}
+
+body {
+	font-family: 'Quicksand', sans-serif;
+	color:#000;
+	background:#eeeee8;
+	font-size:15px;
+	margin: 1em auto 50vh auto;
+	padding: 1em 2em 1em 2em;
+	max-width:45em;
+	border-radius:4px;
+	box-shadow:0 0 10px #0008;
+}
+
+h1 { font-size: 20px; font-weight: 700; }
+h2 { font-size: 16px; font-weight: 700; }
+h3 { font-size: 16px; font-weight: 400; }
+h4 { font-size: 14px; font-weight: 400; }
+
+h1, h2, h3, h4 {
+	margin: 15px 0 0 -10px;
+}
+
+p {
+	margin: 5px 0 0 0;
+}
+
+.subtitle {
+	display:block;
+	font-size:16px;
+	font-weight:400;
+}
+
+.placeholder {
+	color:#800;
+	font-style:italic;
+}
+
+kbd {
+	display:inline-block;
+	background:#ccc;
+	color:#444;
+	font-style:normal;
+	font-weight:700;
+	border-radius:8px;
+	padding:1px 6px;
+	margin:1px;
+	border:1.5px solid #aaa;
+}
+
+code {
+	font-family: 'Anonymous Pro', monospace;
+	background: #222;
+	color:#fff;
+	border-radius:4px;
+	padding:2px 4px;
+	margin:1px;
+}
+
+code var {
+	color:#ef5;
+	font-style:italic;
+}
+
+.atag {
+	font-family: 'Calistoga', serif;
+	font-size:90%;
+	color:#000;
+	background:#b00;
+
+	display:inline-block;
+	padding:1px 4px;
+	border-radius: 4px;
+	line-height:120%;
+}
+.atag:before {
+	content:'»';
+}
+.atag.extra {
+	background:#b08;
+}
+.atag.creative {
+	/* thanks, shout.horse! */
+	background:linear-gradient(0.4turn, #ffe680, #916f6f);
+}
+
+</style>
+</head>
+<body>
+<h1>A3: Lights
+<span class="subtitle">by <span class="placeholder">Trey DuBose (tdubose)</span></span>
+</h1>
+
+<p>
+For this assignment I added lights to my scene, implementing sun, sphere, and spot lights. 
+I was able to account for limit attenuation/falloff, horizon attenuation, and spot light blending.  
+I also was able to account for tone mapping.
+</p>
+
+
+<h2>My Lit Scene <span class="atag creative">A3-create</span></h2>
+
+<p class="placeholder">
+Describe the scene you lit, the light count and placement approach, and include a screen recording showing it running in real-time:
+</p>
+<p>
+   I made a cute little scene with the 3 types of lights. I also showed how their different attenuations shine though a tree, cat, and rat
+   (the 3 essential elements of any scene or what I could find low poly versions for free online).
+</p>
+
+<video>
+</video>
+
+<p class="placeholder">
+Credit + cite your sources for textures and models, if you did not create them yourself.
+</p>
+
+<h2>My Code</h2>
+
+
+<h3>Loading light objects <span class="atag">A3-load</span></h3> 
+
+<p>
+I added every attribute from the <code>"LIGHT"</code> directly to a struct in <code>RTG</code>.
+
+I decided to leave Tint and power seperate becasue sometimes power is a function of the distance. 
+
+</p>
+
+<h3>Adding Direct Lighting to Materials <span class="atag">A3-materials</span></h3>
+
+<p>
+To pass Lighting information to the objects I repurposed <code>World</code> and made a <code>struct Light</code>.
+In that struct I packaged everything into 4 <code>vec4</code>s as Tint + Strength or Power, Position of the light in world + Angle or Fov,
+Radius + Limit + Blend + Type of Light, and the direction that light points. This packaging made all of the information align nicely as attributes in the vertex storage buffer. 
+I essentially passed in an array of Lights to the <code>object.frag</code> where I then looped throught the lights in the scene.
+For each type of light I added the proper light energy * attenuation to the energy at that point.  
+</p>
+
+<img src="A3LightsMix.png" alt="LightsMix">
+
+
+<h3>Adding Shadows for Spot Lights <span class="atag">A3-shadows</span></h3>
+<p>
+    I wasn't able to add shaws to my code :(
+</p>
+
+
+
+
+<h2>Feedback</h2>
+<p class="placeholder">
+I really enjoyed this assignment becasue lights are fun. 
+I wish I was able to fully implement lighting for pbr materlials and I really wanted to get to shadow maps, but again sometimes life gets in the way and time is limited. 
+</p>
+
+</body>
+</html>

@@ -10,3 +10,4 @@ See [step0](http://naak.love/step0/) for information about how to set up your de
 .\bin\main --scene scenes\rotation.s72 --camera Camera
 .\bin\main --scene scenes\sg-Containment.s72 --camera Inside-Camera
 .\bin\main --scene scenes\materials.s72 --camera Camera
+.\bin\main --scene scenes\lights-Mix.s72 --camera Camera

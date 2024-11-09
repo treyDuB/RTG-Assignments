@@ -6,7 +6,7 @@ struct PosNorTexVertex {
     struct { float x, y, z;} Position;
     struct { float x, y, z;} Normal;
     struct { float s, t;} TexCoord;
-    struct { uint8_t m;} MatType;
+    struct { uint32_t m;} MatType;
     //a pipeline vertex input state that works with a buffer holding a PosColVertex[] array:
     static const VkPipelineVertexInputStateCreateInfo array_input_state;
 };

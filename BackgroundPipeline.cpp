@@ -1,4 +1,4 @@
-#include "A2.hpp"
+#include "A3.hpp"
 
 #include "Helpers.hpp"
 #include "VK.hpp"
@@ -11,7 +11,7 @@ static uint32_t frag_code[] =
 #include "spv/background.frag.inl"
 ;
 
-void A2::BackgroundPipeline::create(RTG &rtg, VkRenderPass render_pass, 
+void A3::BackgroundPipeline::create(RTG &rtg, VkRenderPass render_pass, 
     uint32_t subpass) {
     VkShaderModule vert_module = rtg.helpers.create_shader_module(vert_code);
     VkShaderModule frag_module = rtg.helpers.create_shader_module(frag_code);
@@ -155,7 +155,7 @@ void A2::BackgroundPipeline::create(RTG &rtg, VkRenderPass render_pass,
     vkDestroyShaderModule(rtg.device, vert_module, nullptr);
 }
 
-void A2::BackgroundPipeline::destroy(RTG &rtg) {
+void A3::BackgroundPipeline::destroy(RTG &rtg) {
    if (layout != VK_NULL_HANDLE){
         vkDestroyPipelineLayout(rtg.device, layout, nullptr);
         layout = VK_NULL_HANDLE;

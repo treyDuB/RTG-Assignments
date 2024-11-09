@@ -345,9 +345,11 @@ struct RTG {
 
 	struct Light {
 		std::string name;
-		vec4 tint = {1.f, 1.f, 1.f, 0.f};
+		vec3 tint = {1.f, 1.f, 1.f};
 		uint32_t shadow = 0;
 		std::string light_type;
+
+		vec3 position = {0.f, 0.f, 1.f};
 
 		float angle;
 		float strength;

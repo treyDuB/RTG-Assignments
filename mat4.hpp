@@ -222,5 +222,10 @@ inline vec4 pow(vec4 v, float u){
     return ret;
 }
 
+inline vec4 normalize(vec4 v){
+    float inv_len = 1.0f / std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+	return v * inv_len;
+}
+
 
 
