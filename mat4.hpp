@@ -71,6 +71,34 @@ inline vec4 operator+(vec4 const &v0, vec4 const &v1){
 }
 
 
+inline vec3 operator*(vec3 const &v, float const &c) {
+    vec3 ret;
+    //compute ret = v * c :
+    for (uint32_t r = 0; r < 3; r++) {
+        ret[r] = v[r] * c;
+    }
+    return ret;
+}
+inline vec3 operator*(float const &c, vec3 const &v) {
+    return v * c;
+}
+
+inline vec3 operator*(vec3 const &v0, vec3 const &v1){
+    vec3 v;
+    for(int i = 0; i < 3; i++){
+        v[i] = v0[i] * v1[i];
+    }
+    return v;
+}
+
+inline vec3 operator+(vec3 const &v0, vec3 const &v1){
+    vec3 v;
+    for(int i = 0; i < 3; i++){
+        v[i] = v0[i] + v1[i];
+    }
+    return v;
+}
+
 //perspective projection matrix.
 // - vfov is fov *in radians*
 // - near maps to 0, far maps to 1

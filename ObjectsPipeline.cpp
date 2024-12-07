@@ -1,4 +1,4 @@
-#include "A3.hpp"
+#include "F.hpp"
 
 #include "Helpers.hpp"
 #include "VK.hpp"
@@ -11,7 +11,7 @@ static uint32_t frag_code[] =
 #include "spv/objects.frag.inl"
 ;
 
-void A3::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass, 
+void F::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass, 
     uint32_t subpass) {
     VkShaderModule vert_module = rtg.helpers.create_shader_module(vert_code);
     VkShaderModule frag_module = rtg.helpers.create_shader_module(frag_code);
@@ -269,7 +269,7 @@ void A3::ObjectsPipeline::create(RTG &rtg, VkRenderPass render_pass,
     vkDestroyShaderModule(rtg.device, vert_module, nullptr);
 }
 
-void A3::ObjectsPipeline::destroy(RTG &rtg) {
+void F::ObjectsPipeline::destroy(RTG &rtg) {
     if (set3_ENVIRONMENT != VK_NULL_HANDLE) {
 		vkDestroyDescriptorSetLayout(rtg.device, set3_ENVIRONMENT, nullptr);
 		set3_ENVIRONMENT = VK_NULL_HANDLE;

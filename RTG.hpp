@@ -225,6 +225,18 @@ struct RTG {
 		std::string light;
 	};
 
+	struct BBOX {
+		vec3 min;
+		vec3 max;
+		vec3 com; //center of mass
+	};	
+
+	struct Cluster{
+		std::string name;
+		std::vector<uint32_t> group_indices;
+		BBOX bbox;
+	};
+
 	struct Mesh{
 		std::string name;
 		std::string topology;
@@ -257,7 +269,15 @@ struct RTG {
 
 		uint32_t vertices_start;
 		uint32_t vertices_count;
+
+		std::vector<Cluster> clusters;
+		
+		void make_cluster(uint32_t max_size = 128);
+		void splits(std::vector<uint32_t> triangles, uint32_t max, uint32_t depth);
+		BBOX box_triangles(std::vector<uint32_t> triangles);
 	};
+
+	
 
 	struct Camera{
 		std::string name;
@@ -398,6 +418,7 @@ struct RTG {
 
 
 	//------------------------------
+	//Cluster with "cluster"
 	std::string cull_mode = "none";
 
 	bool paused = false;

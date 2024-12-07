@@ -3,7 +3,7 @@
 #define _USE_MATH_DEFINES
 #endif
 
-#include "A3.hpp"
+#include "F.hpp"
 
 #include "VK.hpp"
 
@@ -15,7 +15,7 @@
 #include <stack>          
 
 
-A3::A3(RTG &rtg_) : rtg(rtg_) {
+F::F(RTG &rtg_) : rtg(rtg_) {
 	//select a depth format:
 	//  (at least one of these two must be supported, according to the spec; but neither are required)
 	depth_format = rtg.helpers.find_image_format(
@@ -262,11 +262,11 @@ A3::A3(RTG &rtg_) : rtg(rtg_) {
 	{ //create object vertices
 		std::vector< PosNorTexVertex > vertices;
 
-		if(rtg.cull_mode.compare("cluster") == 0) {// Create mesh vertices from groups
+		if (rtg.cull_mode.compare("cluster") == 0) {// Create mesh vertices from groups
 			for(const auto & [key, value] :rtg.meshes){
 				RTG::Mesh mesh = value;
-				std::cout << "Creating mesh " << key << " with size " << mesh.indices.size() << std::endl;
-				std::cout << "position size " << mesh.position.size() << std::endl;
+				std::cout << "Creating cluster mesh " << key << " with size " << mesh.indices.size() << std::endl;
+				std::cout << "Number of clusters: " << mesh.clusters.size() << std::endl;
 				uint8_t matType = 0;
 				RTG::Material material = rtg.materials[mesh.material];
 				if(material.material_type.compare("lambertian") == 0){
@@ -278,19 +278,19 @@ A3::A3(RTG &rtg_) : rtg(rtg_) {
 				} else if(material.material_type.compare("environment") == 0){
 					matType = MatType::ENVIRONMENT;
 				}
-
+	
 				for(RTG::Cluster cluster : mesh.clusters){
 					ObjectVertices this_vertices;
 					this_vertices.first	 = uint32_t(vertices.size());
 					//Assume Triangle_List
 					AABB box;
-					box.minX = mesh.position[0];
-					box.maxX = mesh.position[0];
-					box.minY = mesh.position[1];
-					box.maxY = mesh.position[1];
-					box.minZ = mesh.position[2];
-					box.maxZ = mesh.position[2];
-					bool first = true;
+					box.minX = cluster.bbox.min[0];
+					box.maxX = cluster.bbox.max[0];
+					box.minY = cluster.bbox.min[1];
+					box.maxY = cluster.bbox.max[1];
+					box.minZ = cluster.bbox.min[2];
+					box.maxZ = cluster.bbox.max[2];
+					// bool first = true;
 
 					//TODO: Material normalMap, displacementMap
 					for(uint32_t idx : cluster.group_indices){
@@ -300,23 +300,23 @@ A3::A3(RTG &rtg_) : rtg(rtg_) {
 							.TexCoord{ .s = mesh.texcoord[idx * 2], .t = mesh.texcoord[idx * 2 + 1] },
 							.MatType{ .m = matType},
 						});
-						if(mesh.position[idx * 3] < box.minX || first) box.minX = mesh.position[idx * 3];
-						if(mesh.position[idx * 3 + 1] < box.minY || first) box.minY = mesh.position[idx * 3 + 1];
-						if(mesh.position[idx * 3 + 2] < box.minZ || first) box.minZ = mesh.position[idx * 3 + 2];
-						if(mesh.position[idx * 3] > box.maxX || first) box.maxX = mesh.position[idx * 3];
-						if(mesh.position[idx * 3 + 1] > box.maxY || first) box.maxY = mesh.position[idx * 3 + 1];
-						if(mesh.position[idx * 3 + 2] > box.maxZ || first) box.maxZ = mesh.position[idx * 3 + 2];
-						if(first) first = false;
+						// if(mesh.position[idx * 3] < box.minX || first) box.minX = mesh.position[idx * 3];
+						// if(mesh.position[idx * 3 + 1] < box.minY || first) box.minY = mesh.position[idx * 3 + 1];
+						// if(mesh.position[idx * 3 + 2] < box.minZ || first) box.minZ = mesh.position[idx * 3 + 2];
+						// if(mesh.position[idx * 3] > box.maxX || first) box.maxX = mesh.position[idx * 3];
+						// if(mesh.position[idx * 3 + 1] > box.maxY || first) box.maxY = mesh.position[idx * 3 + 1];
+						// if(mesh.position[idx * 3 + 2] > box.maxZ || first) box.maxZ = mesh.position[idx * 3 + 2];
+						// if(first) first = false;
 					}
 
 					this_vertices.count = uint32_t(vertices.size()) - this_vertices.first;
 					mesh_box[cluster.name] = box;
 					mesh_vertices[cluster.name] = this_vertices;
+					// std::cout << cluster.name << std::endl;
 				}
 
 			}
-		}
-		else {// Create mesh vertices
+		} else {// Create mesh vertices
 			for(const auto & [key, value] :rtg.meshes){
 				RTG::Mesh mesh = value;
 				std::cout << "Creating mesh " << key << " with size " << mesh.indices.size() << std::endl;
@@ -781,11 +781,11 @@ A3::A3(RTG &rtg_) : rtg(rtg_) {
 
 }
 
-A3::~A3() {
+F::~F() {
 	//just in case rendering is still in flight, don't destroy resources:
 	//(not using VK macro to avoid throw-ing in destructor)
 	if (VkResult result = vkDeviceWaitIdle(rtg.device); result != VK_SUCCESS) {
-		std::cerr << "Failed to vkDeviceWaitIdle in A3::~A3 [" << string_VkResult(result) << "]; continuing anyway." << std::endl;
+		std::cerr << "Failed to vkDeviceWaitIdle in F::~F [" << string_VkResult(result) << "]; continuing anyway." << std::endl;
 	}
 
 	if (texture_descriptor_pool) {
@@ -879,7 +879,7 @@ A3::~A3() {
 	}
 }
 
-void A3::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
+void F::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
 	//clean up existing framebuffers (and depth image):
 	if (swapchain_depth_image.handle != VK_NULL_HANDLE) {
 		destroy_framebuffers();
@@ -938,7 +938,7 @@ void A3::on_swapchain(RTG &rtg_, RTG::SwapchainEvent const &swapchain) {
 	//TODO: Swapchain print
 }
 
-void A3::destroy_framebuffers() {
+void F::destroy_framebuffers() {
 	for (VkFramebuffer &framebuffer : swapchain_framebuffers) {
 		assert(framebuffer != VK_NULL_HANDLE);
 		vkDestroyFramebuffer(rtg.device, framebuffer, nullptr);
@@ -954,7 +954,7 @@ void A3::destroy_framebuffers() {
 }
 
 
-void A3::render(RTG &rtg_, RTG::RenderParams const &render_params) {
+void F::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 	//assert that parameters are valid:
 	assert(&rtg == &rtg_);
 	assert(render_params.workspace_index < workspaces.size());
@@ -1374,7 +1374,7 @@ void A3::render(RTG &rtg_, RTG::RenderParams const &render_params) {
 
 
 
-void A3::update(float dt) {
+void F::update(float dt) {
 	if(!rtg.paused){
 		time = time + dt;
 	}
@@ -1573,9 +1573,10 @@ void A3::update(float dt) {
 								.texture = tex_num,
 								.normal = normal_num,
 							});
+							// std::cout << cluster.name;
 						}
 					}
-				} else{  //Add whole mesh
+				} else {  //Add whole mesh
 					if(in_view(mesh_box[this_mesh.name], CLIP_FROM_WORLD * WORLD_FROM_LOCAL)){
 						object_instances.emplace_back(ObjectInstance{
 							.vertices = mesh_vertices[this_mesh.name],
@@ -1737,7 +1738,7 @@ void A3::update(float dt) {
 }
 
 
-void A3::on_input(InputEvent const &input) {
+void F::on_input(InputEvent const &input) {
 
 	//TODO: Add keys for exposure
 
@@ -1791,12 +1792,12 @@ void A3::on_input(InputEvent const &input) {
 	}
 }
 
-void A3::create_frustum(){
+void F::create_frustum(){
 
 	return;
 }
 
-bool A3::in_view(AABB aabb, mat4 transform){
+bool F::in_view(AABB aabb, mat4 transform){
 	std::vector<vec4> corners;
     corners.push_back({aabb.minX, aabb.minY, aabb.minZ, 1.0}); // x y z
     corners.push_back({aabb.maxX, aabb.minY, aabb.minZ, 1.0}); // X y z

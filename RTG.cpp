@@ -652,7 +652,20 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 						if(object_json.contains("material")){
 							mesh.material = object_json.at("material").as_string().value();
 						}
+
+						//TODO cluster the mesh Here or in the run code
+
+						Cluster cluster;
+						cluster.group_indices = mesh.indices;
+						cluster.name = mesh.name + "-LOL";
+						mesh.clusters.clear();
+						mesh.clusters.push_back(cluster);
+						if(!configuration.cull_mode.empty() && configuration.cull_mode.compare("cluster") == 0){
+							mesh.make_cluster(128);
+						}
+
 						meshes[name] = mesh;
+
 					} else if(type.compare("CAMERA") == 0){
 						std::cout << "Loading camera" << std::endl;
 						Camera camera;
@@ -821,6 +834,15 @@ RTG::RTG(Configuration const &configuration_) : helpers(*this) {
 		if(!configuration.cull_mode.empty()){
 			cull_mode = configuration.cull_mode;
 			std::cout << "Culling mode set to " << cull_mode << std::endl;
+
+			// if(cull_mode.compare("cluster") == 0){
+			// 	//Cluster triangles of each mesh
+			// 	for(const auto & [key, value] : meshes){
+			// 		Mesh mesh = value;
+			// 		mesh.make_cluster();
+			// 		std::cout << "Double check clusters : " << mesh.clusters.size() << std::endl;
+			// 	}
+			// }
 		}
 	}
 
@@ -1350,4 +1372,109 @@ retry:
 
 	glfwSetWindowUserPointer(window, nullptr);
 
+}
+
+RTG::BBOX RTG::Mesh::box_triangles(std::vector<uint32_t> triangles){
+	BBOX bbox;
+	bbox.min = {0.f,0.f,0.f};
+	bbox.max = {0.f,0.f,0.f};
+	bool first = true;
+	for(uint32_t t = 0; t < triangles.size() ; t++){
+		for(uint32_t i = 0; i < 3 ; i++){
+			if(position[triangles[t] * 3 + i] < bbox.min[i] || first) bbox.min[i] = position[triangles[t] * 3 + i];
+			if(position[triangles[t] * 3 + i] > bbox.max[i] || first) bbox.max[i] = position[triangles[t] * 3 + i];
+		}
+		if(first) first = false;
+	}
+	return bbox;
+}
+
+void RTG::Mesh::splits(std::vector<uint32_t> triangles, uint32_t max, uint32_t d){
+	uint32_t size = (uint32_t) triangles.size();
+	uint32_t num_triangles = size / 3;
+	// std::cout << "splitting triangles " << num_triangles  << std::endl;
+	if(size <= 0) return;
+	int target_half = (int) (num_triangles / 2);
+
+	BBOX bbox = box_triangles(triangles);
+
+	if(num_triangles <= max  || max <= 0 || d <= 0){
+
+		Cluster cluster;
+		cluster.group_indices = triangles;
+		cluster.bbox = bbox;
+		cluster.name = name + "-" + std::to_string(clusters.size());
+		if(d <= 0){
+			std::cout << "depth reached !X!X!X!" << std::endl;
+		}
+		std::cout << "Cluster " << cluster.name << " has " << num_triangles << " triangles" << std::endl;
+		clusters.push_back(cluster);
+		return;
+	}
+
+	// Find the best split
+	vec3 center = (bbox.min + bbox.max)  * 0.5f;
+	int countX = 0;
+	int countY = 0;
+	int countZ = 0;
+	for(uint32_t t = 0; t < num_triangles; t++ ){
+		//Want to find the "center"
+		float x = (position[triangles[t*3]*3] + position[triangles[t*3+1]*3] + position[triangles[t*3+2]*3]) / 3.f;
+		float y = (position[triangles[t*3]*3 + 1] + position[triangles[t*3+1]*3 + 1] + position[triangles[t*3+2]*3 + 1]) / 3.f;
+		float z = (position[triangles[t*3]*3 + 2] + position[triangles[t*3+1]*3 + 2] + position[triangles[t*3+2]*3 + 2]) / 3.f;
+		if(x < center[0]) countX++;
+		if(y < center[1]) countY++;
+		if(z < center[2]) countZ++;
+	}
+
+	//Which cut is the best
+	int diffX = std::abs(countX - target_half);
+	int diffY = std::abs(countY - target_half);
+	int diffZ = std::abs(countZ - target_half);
+	int split_idx = 0;
+	if(diffX < diffY && diffX < diffZ){
+		split_idx = 0;
+	} else if(diffY <= diffX && diffY <= diffZ){
+		split_idx = 1;
+	} else if(diffZ <= diffX && diffZ <= diffY){
+		split_idx = 2;
+	}
+	
+	// std::cout << diffX << " , " << diffY << " , " << diffZ << " => " ;
+	// std::cout << "splitting along " << split_idx << std::endl;
+
+	//Seperate the triangles
+	std::vector<uint32_t> left_triangles;
+	std::vector<uint32_t> right_triangles;
+	int l = 0;
+	int r = 0;
+	for(uint32_t t = 0; t < num_triangles; t++){
+		//Want to find the "center"
+		float s = (position[triangles[t*3]*3 + split_idx] + position[triangles[t*3+1] * 3 + split_idx] + position[triangles[t*3+2]*3 + split_idx]) / 3.f;
+		if(s < center[split_idx]){
+			left_triangles.push_back(triangles[t*3]);
+			left_triangles.push_back(triangles[t*3+1]);
+			left_triangles.push_back(triangles[t*3+2]);
+			l++;
+		} else {
+			right_triangles.push_back(triangles[t*3]);
+			right_triangles.push_back(triangles[t*3+1]);
+			right_triangles.push_back(triangles[t*3+2]);
+			r++;
+		}
+	}
+	// std::cout << "sending left , right: " << l << " , " << r << std::endl;
+	
+	//Recurese until done
+	splits(right_triangles, max, d-1);
+	splits(left_triangles, max, d-1);
+}
+
+void RTG::Mesh::make_cluster(uint32_t max_size){
+	clusters.clear();
+	// BBOX bbox = box_triangles(indices);
+	splits(indices, max_size, 10);
+	size_t size = clusters.size();
+	std::cout << "Total Clusters: " << size << std::endl;
+	return;
 }

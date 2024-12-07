@@ -1,7 +1,6 @@
-#ifndef AA32B710_B7A4_48B9_AC32_AF4954B60C38
-#define AA32B710_B7A4_48B9_AC32_AF4954B60C38
-#ifndef DC95ECE2_4E01_4EFA_8058_92A36917FC0C
-#define DC95ECE2_4E01_4EFA_8058_92A36917FC0C
+#ifndef B757BE57_CA05_4AE1_91A0_CBEEEEDADA5D
+#define B757BE57_CA05_4AE1_91A0_CBEEEEDADA5D
+
 
 #include "PosColVertex.hpp"
 #include "PosNorTexVertex.hpp"
@@ -11,11 +10,11 @@
 
 #include "RTG.hpp"
 
-struct A3 : RTG::Application {
+struct F : RTG::Application {
 
-	A3(RTG &);
-	A3(A3 const &) = delete; //you shouldn't be copying this object
-	~A3();
+	F(RTG &);
+	F(F const &) = delete; //you shouldn't be copying this object
+	~F();
 
 	//kept for use in destructor:
 	RTG &rtg;
@@ -260,8 +259,4 @@ struct A3 : RTG::Application {
 	virtual void render(RTG &, RTG::RenderParams const &) override;
 };
 
-
-#endif /* DC95ECE2_4E01_4EFA_8058_92A36917FC0C */
-
-
-#endif /* AA32B710_B7A4_48B9_AC32_AF4954B60C38 */
+#endif /* B757BE57_CA05_4AE1_91A0_CBEEEEDADA5D */

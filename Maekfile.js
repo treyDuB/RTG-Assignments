@@ -27,7 +27,7 @@ custom_flags_and_rules();
 //maek.CPP(...) builds a c++ file:
 // it returns the path to the output object file
 const main_objs = [
-	maek.CPP('A3.cpp'),
+	maek.CPP('F.cpp'),
 	maek.CPP('PosColVertex.cpp'),
 	maek.CPP('PosNorTexVertex.cpp'),
 	maek.CPP('Light.cpp'),
