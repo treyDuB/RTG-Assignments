@@ -127,7 +127,7 @@ struct RTG {
 	//swapchain management: (used from RTG::RTG(), RTG::~RTG(), and RTG::run() [on resize])
 	void recreate_swapchain();
 	void destroy_swapchain(); //NOTE: swapchain must exist
-	
+
 	//Workspaces hold dynamic state that must be kept separate between frames.
 	// RTG stores some synchronization primitives per workspace.
 	// (The bulk of per-workspace data will be managed by the Application.)
